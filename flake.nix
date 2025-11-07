@@ -49,6 +49,7 @@
           global.autoUpdate = true;
           casks = [
             "ghostty"
+            "tailscale"
             # or with args: { name = "firefox"; args = { appdir = "/Applications"; }; }
           ];
         };
