@@ -41,6 +41,11 @@
           # Automatically set primary user from configuration
           system.primaryUser = user;
 
+          # Allow user to run Homebrew without sudo password
+          security.sudo.extraConfig = ''
+            ${user} ALL=(ALL) NOPASSWD: /opt/homebrew/bin/brew
+          '';
+
           # Create /etc/zshrc that loads the nix-darwin environment.
           # programs.zsh.enable = true;
 
