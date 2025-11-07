@@ -43,6 +43,13 @@
           
         ];
 
+        homebrew = {
+          enable = true;
+          casks = [
+            "ghostty"
+            # or with args: { name = "firefox"; args = { appdir = "/Applications"; }; }
+          ];
+        };
 
         # The platform the configuration will be used on.
         nixpkgs.hostPlatform = "aarch64-darwin";
@@ -101,9 +108,7 @@
               "homebrew/homebrew-cask" = homebrew-cask;
             };
 
-            casks = [
-              "ghostty"
-            ];
+
 
               # Optional: Enable fully-declarative tap management
               #
