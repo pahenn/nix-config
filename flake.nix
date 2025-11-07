@@ -41,7 +41,7 @@
         # programs.zsh.enable = true;
 
         environment.systemPackages = [
-          
+          pkgs.utm
         ];
 
         homebrew = {
@@ -50,6 +50,7 @@
           casks = [
             "ghostty"
             "tailscale"
+            "orbstack"
             # or with args: { name = "firefox"; args = { appdir = "/Applications"; }; }
           ];
         };
