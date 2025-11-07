@@ -103,7 +103,7 @@
 
             casks = [
               ghostty
-            ]
+            ];
 
               # Optional: Enable fully-declarative tap management
               #
