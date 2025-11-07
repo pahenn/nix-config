@@ -1,48 +1,114 @@
+# ~/.config/nix/flake.nix
+
 {
-  description = "Example nix-darwin system flake";
+  description = "pahenn nix configuration";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nix-darwin = {
+        url = "github:LnL7/nix-darwin";
+        inputs.nixpkgs.follows = "nixpkgs";
+    };
 
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-darwin.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
 
-    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.05";
-    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    # Optional: Declarative tap management
+    homebrew-core = {
+      url = "github:homebrew/homebrew-core";
+      flake = false;
+    };
+    homebrew-cask = {
+      url = "github:homebrew/homebrew-cask";
+      flake = false;
+    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs }:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, nix-homebrew, homebrew-core, homebrew-cask}:
   let
-    configuration = { pkgs, ... }: {
-      # List packages installed in system profile. To search by name, run:
-      # $ nix-env -qaP | grep wget
-      environment.systemPackages =
-        [ 
-          pkgs.neovim
-        ];
+    configuration = {pkgs, ... }: {
 
-      # Necessary for using flakes on this system.
-      nix.settings.experimental-features = "nix-command flakes";
+        # Necessary for using flakes on this system.
+        nix.settings.experimental-features = "nix-command flakes";
 
-      # Enable alternative shell support in nix-darwin.
-      # programs.fish.enable = true;
+        system.configurationRevision = self.rev or self.dirtyRev or null;
 
-      # Set Git commit hash for darwin-version.
-      system.configurationRevision = self.rev or self.dirtyRev or null;
+        # Used for backwards compatibility. please read the changelog
+        # before changing: `darwin-rebuild changelog`.
+        system.stateVersion = 6;
 
-      # Used for backwards compatibility, please read the changelog before changing.
-      # $ darwin-rebuild changelog
-      system.stateVersion = 6;
+        # this became a requirement when I added the homebrew stuff
+        # system.primaryUser = "pahenn";
 
-      # The platform the configuration will be used on.
-      nixpkgs.hostPlatform = "aarch64-darwin";
+
+        # Create /etc/zshrc that loads the nix-darwin environment.
+        # programs.zsh.enable = true;
+
+        environment.systemPackages = [ ];
+
+
+        # The platform the configuration will be used on.
+        nixpkgs.hostPlatform = "aarch64-darwin";
     };
   in
   {
-    # Build darwin flake using:
-    # $ darwin-rebuild build --flake .#pahenn-macbook-pro
     darwinConfigurations."pahenn-macbook-pro" = nix-darwin.lib.darwinSystem {
-      modules = [ configuration ];
+      modules = [
+        configuration
+
+        ## BEGIN: Existing homebrew install ##
+        # nix-homebrew.darwinModules.nix-homebrew
+        # {
+        #   nix-homebrew = {
+        #     # Install Homebrew under the default prefix
+        #     enable = true;
+
+        #     # Apple Silicon Only: Also install Homebrew under the default Intel prefix for Rosetta 2
+        #     # enableRosetta = true;
+
+        #     # User owning the Homebrew prefix
+        #     user = "pahenn";
+
+        #     # Optional: Declarative tap management
+        #     taps = {
+        #       "homebrew/homebrew-core" = homebrew-core;
+        #       "homebrew/homebrew-cask" = homebrew-cask;
+        #     };
+
+        #     # Automatically migrate existing Homebrew installations
+        #     autoMigrate = true;
+        #   };
+        # }
+        ## END: Existing homebrew install ##
+
+
+        ## BEGIN: No existing homebrew install ##
+        nix-homebrew.darwinModules.nix-homebrew
+        {
+          nix-homebrew = {
+            # Install Homebrew under the default prefix
+            enable = true;
+
+            # Apple Silicon Only: Also install Homebrew under the default Intel prefix for Rosetta 2
+            enableRosetta = true;
+
+            # User owning the Homebrew prefix
+            user = "home";
+
+            # Optional: Declarative tap management
+            taps = {
+              "homebrew/homebrew-core" = homebrew-core;
+              "homebrew/homebrew-cask" = homebrew-cask;
+            };
+
+              # Optional: Enable fully-declarative tap management
+              #
+              # With mutableTaps disabled, taps can no longer be added imperatively with `brew tap`.
+              mutableTaps = false;
+          };
+        }
+      ];## END: No existing homebrew install ##
+
+      ];
     };
   };
 }
