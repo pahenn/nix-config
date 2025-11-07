@@ -40,7 +40,7 @@
         # programs.zsh.enable = true;
 
         environment.systemPackages = [
-          pkgs.ghostty
+          
         ];
 
 
@@ -92,12 +92,18 @@
 
             # User owning the Homebrew prefix
             user = "home";
+            global.autoUpdate = true;
+
 
             # Optional: Declarative tap management
             taps = {
               "homebrew/homebrew-core" = homebrew-core;
               "homebrew/homebrew-cask" = homebrew-cask;
             };
+
+            casks = [
+              ghostty
+            ]
 
               # Optional: Enable fully-declarative tap management
               #
