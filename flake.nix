@@ -35,6 +35,7 @@
         # Used for backwards compatibility. please read the changelog
         # before changing: `darwin-rebuild changelog`.
         system.stateVersion = 6;
+        system.primaryUser = "home";
 
         # Create /etc/zshrc that loads the nix-darwin environment.
         # programs.zsh.enable = true;
