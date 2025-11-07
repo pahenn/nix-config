@@ -25,7 +25,7 @@
 
   outputs = inputs@{ self, nix-darwin, nixpkgs, nix-homebrew, homebrew-core, homebrew-cask}:
   let
-    configuration = {pkgs, ... }: {
+    configuration = { config, pkgs, ... }: {
 
         # Necessary for using flakes on this system.
         nix.settings.experimental-features = "nix-command flakes";
@@ -35,10 +35,6 @@
         # Used for backwards compatibility. please read the changelog
         # before changing: `darwin-rebuild changelog`.
         system.stateVersion = 6;
-
-        # this became a requirement when I added the homebrew stuff
-        # system.primaryUser = "pahenn";
-
 
         # Create /etc/zshrc that loads the nix-darwin environment.
         # programs.zsh.enable = true;
@@ -56,7 +52,7 @@
       modules = [
         configuration
 
-        ## BEGIN: Existing homebrew install ##
+        # ## BEGIN: Existing homebrew install ##
         # nix-homebrew.darwinModules.nix-homebrew
         # {
         #   nix-homebrew = {
@@ -79,10 +75,10 @@
         #     autoMigrate = true;
         #   };
         # }
-        ## END: Existing homebrew install ##
+        # ## END: Existing homebrew install ##
 
 
-        ## BEGIN: No existing homebrew install ##
+        # ## BEGIN: No existing homebrew install ##
         nix-homebrew.darwinModules.nix-homebrew
         {
           nix-homebrew = {
@@ -90,7 +86,7 @@
             enable = true;
 
             # Apple Silicon Only: Also install Homebrew under the default Intel prefix for Rosetta 2
-            enableRosetta = true;
+            # enableRosetta = true;
 
             # User owning the Homebrew prefix
             user = "home";
@@ -107,7 +103,7 @@
               mutableTaps = false;
           };
         }
-        ## END: No existing homebrew install ##
+        # ## END: No existing homebrew install ##
       ];
     };
   };
