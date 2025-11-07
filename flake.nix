@@ -106,8 +106,7 @@
               mutableTaps = false;
           };
         }
-      ];## END: No existing homebrew install ##
-
+        ## END: No existing homebrew install ##
       ];
     };
   };
