@@ -26,7 +26,7 @@
   outputs = inputs@{ self, nix-darwin, nixpkgs, nix-homebrew, homebrew-core, homebrew-cask}:
   let
     # Helper function to create a Darwin configuration with a specific user
-    mkDarwinConfig = { user, autoMigrate ? false, mutableTaps ? true }: nix-darwin.lib.darwinSystem {
+    mkDarwinConfig = { user, autoMigrate ? false, mutableTaps ? true, extraPackages ? [], extraBrews ? [] }: nix-darwin.lib.darwinSystem {
       modules = [
         ({ config, pkgs, ... }: {
           # Necessary for using flakes on this system.
@@ -51,11 +51,12 @@
 
           environment.systemPackages = [
             pkgs.utm
-          ];
+          ] ++ extraPackages;
 
           homebrew = {
             enable = true;
             global.autoUpdate = true;
+            brews = extraBrews;
             casks = [
               "ghostty"
               "tailscale"
@@ -93,6 +94,9 @@
     darwinConfigurations."mini" = mkDarwinConfig {
       user = "home";
       mutableTaps = false;
+      extraBrews = [
+        "socat"
+      ];
     };
   };
 }
