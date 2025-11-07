@@ -25,6 +25,26 @@
 
   outputs = inputs@{ self, nix-darwin, nixpkgs, nix-homebrew, homebrew-core, homebrew-cask}:
   let
+    # Helper function to create a NixOS configuration
+    mkNixOSConfig = { system, user, extraPackages ? [] }: nixpkgs.lib.nixosSystem {
+      inherit system;
+      modules = [
+        ({ config, pkgs, ... }: {
+          nix.settings.experimental-features = "nix-command flakes";
+
+          system.stateVersion = "24.05";
+
+          # Basic system packages
+          environment.systemPackages = with pkgs; extraPackages;
+
+          # Enable Tailscale
+          services.tailscale.enable = true;
+
+          nixpkgs.hostPlatform = system;
+        })
+      ];
+    };
+
     # Helper function to create a Darwin configuration with a specific user
     mkDarwinConfig = { user, autoMigrate ? false, mutableTaps ? true, extraPackages ? [], extraBrews ? [] }: nix-darwin.lib.darwinSystem {
       modules = [
@@ -86,6 +106,7 @@
     };
   in
   {
+    # macOS configurations
     darwinConfigurations."pahenn-macbook-pro" = mkDarwinConfig {
       user = "pahenn";
       autoMigrate = true;
@@ -97,6 +118,13 @@
       extraBrews = [
         "socat"
       ];
+    };
+
+    # NixOS configurations
+    nixosConfigurations."ubuntu-server" = mkNixOSConfig {
+      system = "aarch64-linux";
+      user = "ubuntu";
+      extraPackages = [];
     };
   };
 }
