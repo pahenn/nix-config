@@ -51,7 +51,8 @@
     };
   in
   {
-    darwinConfigurations."pahenn-macbook-pro" = nix-darwin.lib.darwinSystem {
+    # darwinConfigurations."pahenn-macbook-pro" = nix-darwin.lib.darwinSystem {
+    darwinConfigurations."mini" = nix-darwin.lib.darwinSystem {
       modules = [
         configuration
 
