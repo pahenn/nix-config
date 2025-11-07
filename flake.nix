@@ -45,6 +45,7 @@
 
         homebrew = {
           enable = true;
+          global.autoUpdate = true;
           casks = [
             "ghostty"
             # or with args: { name = "firefox"; args = { appdir = "/Applications"; }; }
@@ -99,7 +100,6 @@
 
             # User owning the Homebrew prefix
             user = "home";
-            global.autoUpdate = true;
 
 
             # Optional: Declarative tap management
