@@ -133,6 +133,9 @@
       homeDirectory = "/home/ubuntu";
       extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
         # Add packages here
+        # I don't know how to install tailscale this way, so
+        # - sudo snap install tailscale
+        # - sudo tailscale up
       ];
     };
   };
