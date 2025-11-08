@@ -10,6 +10,11 @@
         inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
 
     # Optional: Declarative tap management
@@ -23,25 +28,26 @@
     };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, nix-homebrew, homebrew-core, homebrew-cask}:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-core, homebrew-cask}:
   let
-    # Helper function to create a NixOS configuration
-    mkNixOSConfig = { system, user, extraPackages ? [] }: nixpkgs.lib.nixosSystem {
-      inherit system;
+    # Helper function to create a home-manager configuration
+    mkHomeConfig = { system, username, homeDirectory, extraPackages ? [] }: home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.${system};
       modules = [
-        ({ config, pkgs, ... }: {
-          nix.settings.experimental-features = "nix-command flakes";
+        {
+          home.username = username;
+          home.homeDirectory = homeDirectory;
+          home.stateVersion = "24.05";
 
-          system.stateVersion = "24.05";
+          # Packages to install
+          home.packages = extraPackages;
 
-          # Basic system packages
-          environment.systemPackages = with pkgs; extraPackages;
+          # Let home-manager manage itself
+          programs.home-manager.enable = true;
 
-          # Enable Tailscale
-          services.tailscale.enable = true;
-
-          nixpkgs.hostPlatform = system;
-        })
+          # Enable experimental features
+          nix.settings.experimental-features = [ "nix-command" "flakes" ];
+        }
       ];
     };
 
@@ -120,11 +126,14 @@
       ];
     };
 
-    # NixOS configurations
-    nixosConfigurations."ubuntu-server" = mkNixOSConfig {
+    # home-manager configurations (for Linux systems)
+    homeConfigurations."ubuntu@ubuntu-server" = mkHomeConfig {
       system = "aarch64-linux";
-      user = "ubuntu";
-      extraPackages = [];
+      username = "ubuntu";
+      homeDirectory = "/home/ubuntu";
+      extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
+        # Add packages here
+      ];
     };
   };
 }
