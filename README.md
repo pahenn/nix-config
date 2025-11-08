@@ -2,6 +2,8 @@
 
 Multi-machine Nix configuration using flakes for macOS (nix-darwin) and Linux (home-manager).
 
+**New to this setup?** See [INSTALL.md](INSTALL.md) for installation instructions.
+
 ## Machines
 
 ### macOS (nix-darwin)
