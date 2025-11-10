@@ -48,6 +48,12 @@
           # Packages to install
           home.packages = with nixpkgs.legacyPackages.${system}; [
             neovim
+
+            # fonts
+            nerd-fonts.fira-code
+            nerd-fonts.fira-mono
+            nerd-fonts.hack
+            nerd-fonts.jetbrains-mono
           ] ++ extraPackages;
 
           # Configure Zsh as default shell
