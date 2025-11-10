@@ -75,8 +75,8 @@ cd ~/nix-config
 # Update flake inputs
 nix flake update
 
-# First-time activation
-nix run home-manager/master -- switch --flake .#ubuntu@ubuntu
+# First-time activation (backs up existing config files)
+nix run home-manager/master -- switch --flake .#ubuntu@ubuntu -b backup
 ```
 
 ### 5. Install Tailscale (manual step)

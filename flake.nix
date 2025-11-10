@@ -47,9 +47,26 @@
 
           # Packages to install
           home.packages = with nixpkgs.legacyPackages.${system}; [
-            starship
             neovim
           ] ++ extraPackages;
+
+          # Configure Zsh as default shell
+          programs.zsh = {
+            enable = true;
+            enableCompletion = true;
+            autosuggestion.enable = true;
+            syntaxHighlighting.enable = true;
+          };
+
+          # Configure Starship
+          programs.starship = {
+            enable = true;
+            enableZshIntegration = true;
+            enableBashIntegration = true;
+          };
+
+          # Link starship config
+          xdg.configFile."starship.toml".source = ./home/starship/starship.toml;
 
           # Let home-manager manage itself
           programs.home-manager.enable = true;
@@ -83,7 +100,6 @@
 
           environment.systemPackages = [
             pkgs.utm
-            pkgs.starship
             pkgs.neovim
 
             # fonts
@@ -92,6 +108,19 @@
             pkgs.nerd-fonts.hack
             pkgs.nerd-fonts.jetbrains-mono
           ] ++ extraPackages;
+
+          # Configure Starship
+          programs.starship = {
+            enable = true;
+            interactiveOnly = false;
+          };
+
+          # Link starship config to user's home directory
+          environment.etc."starship.toml" = {
+            source = ./home/starship/starship.toml;
+            target = "Users/${user}/.config/starship.toml";
+            mode = "0644";
+          };
 
           homebrew = {
             enable = true;
@@ -110,13 +139,6 @@
               "tailscale"
             ];
           };
-
-          # programs.starship = {
-          #   enable = true;
-          #   enableZshIntegration = true;
-          #   enableBashIntegration = true;
-          #   # settings = pkgs.lib.importTOML Users/pahenn/nix-config/data/starship/starship.toml;
-          # };
 
           # The platform the configuration will be used on.
           nixpkgs.hostPlatform = "aarch64-darwin";
@@ -159,6 +181,7 @@
       username = "ubuntu";
       homeDirectory = "/home/ubuntu";
       extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
+        alacritty
         # Add packages here
         # I don't know how to install tailscale this way, so
         # - sudo snap install tailscale
