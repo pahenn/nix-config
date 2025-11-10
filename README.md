@@ -101,3 +101,68 @@ sudo tailscale up
 - `mkHomeConfig`: Helper function for Linux home-manager configurations
   - User-level package management
   - No system-level daemon support
+
+## Advanced Configuration
+
+### Helper Function Parameters
+
+Both helper functions support `extraModules` for custom configurations without modifying the helper functions.
+
+#### `mkDarwinConfig` Parameters
+- `user`: Username for system.primaryUser and Homebrew
+- `autoMigrate`: Auto-migrate existing Homebrew installations (default: false)
+- `mutableTaps`: Allow mutable Homebrew taps (default: true)
+- `extraPackages`: Additional Nix packages to install
+- `extraBrews`: Additional Homebrew CLI packages
+- `extraModules`: Custom nix-darwin modules for advanced configuration
+
+#### `mkHomeConfig` Parameters
+- `system`: Target system architecture (e.g., "aarch64-linux")
+- `username`: User account name
+- `homeDirectory`: Full path to home directory
+- `extraPackages`: Additional Nix packages to install
+- `extraModules`: Custom home-manager modules for advanced configuration
+
+### Using `extraModules`
+
+Use `extraModules` to add custom configuration without modifying the helper functions.
+
+#### macOS Example (nix-darwin)
+```nix
+darwinConfigurations."my-machine" = mkDarwinConfig {
+  user = "myuser";
+  extraModules = [
+    ({ config, pkgs, ... }: {
+      # Custom system configuration
+      system.defaults.dock.autohide = true;
+
+      # Additional services
+      services.some-service.enable = true;
+    })
+  ];
+};
+```
+
+#### Linux Example (home-manager)
+```nix
+homeConfigurations."myuser@myhost" = mkHomeConfig {
+  system = "x86_64-linux";
+  username = "myuser";
+  homeDirectory = "/home/myuser";
+  extraModules = [
+    ({ config, pkgs, ... }: {
+      # Custom home-manager configuration
+      programs.git = {
+        enable = true;
+        userName = "My Name";
+        userEmail = "my@email.com";
+      };
+
+      # Custom environment variables
+      home.sessionVariables = {
+        EDITOR = "nvim";
+      };
+    })
+  ];
+};
+```

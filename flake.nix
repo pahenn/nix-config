@@ -31,7 +31,7 @@
   outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-core, homebrew-cask}:
   let
     # Helper function to create a home-manager configuration
-    mkHomeConfig = { system, username, homeDirectory, extraPackages ? [] }: home-manager.lib.homeManagerConfiguration {
+    mkHomeConfig = { system, username, homeDirectory, extraPackages ? [], extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.${system};
       modules = [
         {
@@ -65,17 +65,17 @@
             enableBashIntegration = true;
           };
 
-          # Link starship config
-          xdg.configFile."starship.toml".source = ./home/starship/starship.toml;
+          # Point starship to config in this repo
+          home.sessionVariables.STARSHIP_CONFIG = "${./home/starship/starship.toml}";
 
           # Let home-manager manage itself
           programs.home-manager.enable = true;
         }
-      ];
+      ] ++ extraModules; # Allow additional custom modules per-machine
     };
 
     # Helper function to create a Darwin configuration with a specific user
-    mkDarwinConfig = { user, autoMigrate ? false, mutableTaps ? true, extraPackages ? [], extraBrews ? [] }: nix-darwin.lib.darwinSystem {
+    mkDarwinConfig = { user, autoMigrate ? false, mutableTaps ? true, extraPackages ? [], extraBrews ? [], extraModules ? [] }: nix-darwin.lib.darwinSystem {
       modules = [
         ({ config, pkgs, ... }: {
           # Necessary for using flakes on this system.
@@ -115,12 +115,8 @@
             interactiveOnly = false;
           };
 
-          # Link starship config to user's home directory
-          environment.etc."starship.toml" = {
-            source = ./home/starship/starship.toml;
-            target = "Users/${user}/.config/starship.toml";
-            mode = "0644";
-          };
+          # Point starship to config in this repo
+          environment.variables.STARSHIP_CONFIG = "${./home/starship/starship.toml}";
 
           homebrew = {
             enable = true;
@@ -157,7 +153,7 @@
             inherit autoMigrate mutableTaps;
           };
         }
-      ];
+      ] ++ extraModules; # Allow additional custom modules per-machine
     };
   in
   {
