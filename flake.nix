@@ -72,6 +72,9 @@
             settings = builtins.fromTOML (builtins.readFile ./home/starship/starship.toml);
           };
 
+          # Enable font configuration
+          fonts.fontconfig.enable = true;
+
           # Let home-manager manage itself
           programs.home-manager.enable = true;
         }
