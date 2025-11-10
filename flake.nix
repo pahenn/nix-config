@@ -78,6 +78,7 @@
           environment.systemPackages = [
             pkgs.utm
             pkgs.starship
+            pkgs.neovim
 
             # fonts
             pkgs.nerd-fonts.fira-code
