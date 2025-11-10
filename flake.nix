@@ -75,25 +75,9 @@
           # Enable font configuration
           fonts.fontconfig.enable = true;
 
-          # Configure GNOME Terminal to use Nerd Font and Solarized Light theme
-          programs.gnome-terminal = {
-            enable = true;
-            profile = {
-              default = {
-                visibleName = "Default";
-                font = "FiraCode Nerd Font 11";
-                showScrollbar = false;
-                foregroundColor = "#657b83";
-                backgroundColor = "#fdf6e3";
-                palette = [
-                  "#073642" "#dc322f" "#859900" "#b58900"
-                  "#268bd2" "#d33682" "#2aa198" "#eee8d5"
-                  "#002b36" "#cb4b16" "#586e75" "#657b83"
-                  "#839496" "#6c71c4" "#93a1a1" "#fdf6e3"
-                ];
-              };
-            };
-          };
+          # Note: GNOME Terminal configuration disabled due to API changes
+          # You can configure terminal colors manually in GNOME Terminal preferences
+          # Recommended: FiraCode Nerd Font 11, Solarized Light theme
 
           # Let home-manager manage itself
           programs.home-manager.enable = true;
