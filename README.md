@@ -19,12 +19,15 @@ Multi-machine Nix configuration using flakes for macOS (nix-darwin) and Linux (h
 
 ### Linux (home-manager)
 
-- **ubuntu@ubuntu-server**: Ubuntu VM running on Mac Mini
+- **ubuntu**: Ubuntu VM running on Mac Mini
   - User: `ubuntu`
+  - Hostname: `ubuntu`
   - Home directory: `/home/ubuntu`
   - Note: Tailscale must be installed via snap (see below)
 
 ## Usage
+
+**Note:** Configuration names match hostnames, so the `--flake .#<name>` argument is optional if you're on that machine. You can just run `darwin-rebuild switch` or `home-manager switch` without specifying the configuration name.
 
 ### macOS
 
@@ -33,17 +36,28 @@ Multi-machine Nix configuration using flakes for macOS (nix-darwin) and Linux (h
 darwin-rebuild switch --flake .#pahenn-macbook-pro
 # or
 darwin-rebuild switch --flake .#mini
+# or just: darwin-rebuild switch (auto-detects hostname)
+
+# Quick reference - pull latest changes and rebuild:
+cd ~/.config/nix && git pull && darwin-rebuild switch --flake .#pahenn-macbook-pro
+# or for mini:
+cd ~/.config/nix && git pull && darwin-rebuild switch --flake .#mini
+# or: cd ~/.config/nix && git pull && darwin-rebuild switch
 ```
 
 ### Linux (Ubuntu)
 
 ```bash
-# First time setup
+# First time setup (only needed once)
 nix flake update
-nix run home-manager/master -- switch --flake .#ubuntu@ubuntu-server
+nix run home-manager/master -- switch --flake .#ubuntu@ubuntu
 
-# Subsequent updates
-home-manager switch --flake .#ubuntu@ubuntu-server
+# Subsequent updates (use this after the first time)
+home-manager switch --flake .#ubuntu@ubuntu
+# or just: home-manager switch (auto-detects user@hostname)
+
+# Quick reference - after initial setup, just run:
+cd ~/nix-config && git pull && home-manager switch
 ```
 
 ## Adding Packages

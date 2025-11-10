@@ -43,17 +43,23 @@ sh <(curl -L https://nixos.org/nix/install) --daemon
 
 ### 2. Enable flakes
 
-Edit `~/.config/nix/nix.conf` (create if it doesn't exist):
+**Important:** After installing Nix, you need to restart your shell or source the Nix profile before proceeding.
 
-```
-experimental-features = nix-command flakes
+```bash
+# Restart your shell or run:
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 ```
 
-Or run:
+Then enable experimental features:
 
 ```bash
 mkdir -p ~/.config/nix
-echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+```
+
+**Verify it works:**
+```bash
+nix --version  # Should show Nix version
 ```
 
 ### 3. Clone this repository
@@ -70,7 +76,7 @@ cd ~/nix-config
 nix flake update
 
 # First-time activation
-nix run home-manager/master -- switch --flake .#ubuntu@ubuntu-server
+nix run home-manager/master -- switch --flake .#ubuntu@ubuntu
 ```
 
 ### 5. Install Tailscale (manual step)
@@ -95,7 +101,7 @@ darwin-rebuild switch --flake .#<machine-name>
 ```bash
 cd ~/nix-config
 git pull
-home-manager switch --flake .#ubuntu@ubuntu-server
+home-manager switch --flake .#ubuntu@ubuntu
 ```
 
 ## Troubleshooting

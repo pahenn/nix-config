@@ -35,6 +35,9 @@
       pkgs = nixpkgs.legacyPackages.${system};
       modules = [
         {
+          # Enable experimental features
+          nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
           home.username = username;
           home.homeDirectory = homeDirectory;
           home.stateVersion = "25.05";
@@ -47,9 +50,6 @@
 
           # Let home-manager manage itself
           programs.home-manager.enable = true;
-
-          # Enable experimental features
-          nix.settings.experimental-features = [ "nix-command" "flakes" ];
         }
       ];
     };
@@ -137,7 +137,7 @@
   in
   {
     # macOS configurations
-    darwinConfigurations."pahenn-macbook-pro" = mkDarwinConfig {
+    darwinConfigurations."pahenn-macbook" = mkDarwinConfig {
       user = "pahenn";
       autoMigrate = true;
     };
@@ -151,7 +151,7 @@
     };
 
     # home-manager configurations (for Linux systems)
-    homeConfigurations."ubuntu@ubuntu-server" = mkHomeConfig {
+    homeConfigurations."ubuntu@ubuntu" = mkHomeConfig {
       system = "aarch64-linux";
       username = "ubuntu";
       homeDirectory = "/home/ubuntu";
