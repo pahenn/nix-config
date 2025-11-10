@@ -37,7 +37,7 @@
         {
           home.username = username;
           home.homeDirectory = homeDirectory;
-          home.stateVersion = "24.05";
+          home.stateVersion = "25.05";
 
           # Packages to install
           home.packages = extraPackages;
