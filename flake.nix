@@ -58,15 +58,13 @@
             syntaxHighlighting.enable = true;
           };
 
-          # Configure Starship
+          # Configure Starship with custom config
           programs.starship = {
             enable = true;
             enableZshIntegration = true;
             enableBashIntegration = true;
+            settings = builtins.fromTOML (builtins.readFile ./home/starship/starship.toml);
           };
-
-          # Point starship to config in this repo
-          home.sessionVariables.STARSHIP_CONFIG = "${./home/starship/starship.toml}";
 
           # Let home-manager manage itself
           programs.home-manager.enable = true;
@@ -109,14 +107,12 @@
             pkgs.nerd-fonts.jetbrains-mono
           ] ++ extraPackages;
 
-          # Configure Starship
+          # Configure Starship with custom config
           programs.starship = {
             enable = true;
             interactiveOnly = false;
+            settings = builtins.fromTOML (builtins.readFile ./home/starship/starship.toml);
           };
-
-          # Point starship to config in this repo
-          environment.variables.STARSHIP_CONFIG = "${./home/starship/starship.toml}";
 
           homebrew = {
             enable = true;
@@ -177,9 +173,8 @@
       username = "ubuntu";
       homeDirectory = "/home/ubuntu";
       extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
-        alacritty
         # Add packages here
-        # I don't know how to install tailscale this way, so
+        # Note: Tailscale must be installed via snap (see INSTALL.md):
         # - sudo snap install tailscale
         # - sudo tailscale up
       ];
