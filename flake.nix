@@ -35,6 +35,9 @@
       pkgs = nixpkgs.legacyPackages.${system};
       modules = [
         {
+          # Specify the Nix package
+          nix.package = nixpkgs.legacyPackages.${system}.nix;
+
           # Enable experimental features
           nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
