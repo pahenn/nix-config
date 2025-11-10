@@ -75,6 +75,26 @@
           # Enable font configuration
           fonts.fontconfig.enable = true;
 
+          # Configure GNOME Terminal to use Nerd Font and Solarized Light theme
+          programs.gnome-terminal = {
+            enable = true;
+            profile = {
+              default = {
+                visibleName = "Default";
+                font = "FiraCode Nerd Font 11";
+                showScrollbar = false;
+                foregroundColor = "#657b83";
+                backgroundColor = "#fdf6e3";
+                palette = [
+                  "#073642" "#dc322f" "#859900" "#b58900"
+                  "#268bd2" "#d33682" "#2aa198" "#eee8d5"
+                  "#002b36" "#cb4b16" "#586e75" "#657b83"
+                  "#839496" "#6c71c4" "#93a1a1" "#fdf6e3"
+                ];
+              };
+            };
+          };
+
           # Let home-manager manage itself
           programs.home-manager.enable = true;
         }
@@ -103,11 +123,12 @@
           '';
 
           # Create /etc/zshrc that loads the nix-darwin environment.
-          # programs.zsh.enable = true;
+          programs.zsh.enable = true;
 
           environment.systemPackages = [
             pkgs.utm
             pkgs.neovim
+            pkgs.starship
 
             # fonts
             pkgs.nerd-fonts.fira-code
@@ -116,12 +137,8 @@
             pkgs.nerd-fonts.jetbrains-mono
           ] ++ extraPackages;
 
-          # Configure Starship with custom config
-          programs.starship = {
-            enable = true;
-            interactiveOnly = false;
-            settings = builtins.fromTOML (builtins.readFile ./home/starship/starship.toml);
-          };
+          # Point starship to config in this repo via environment variable
+          environment.variables.STARSHIP_CONFIG = "$HOME/nix-config/home/starship/starship.toml";
 
           homebrew = {
             enable = true;
