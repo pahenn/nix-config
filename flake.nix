@@ -40,7 +40,10 @@
           home.stateVersion = "25.05";
 
           # Packages to install
-          home.packages = extraPackages;
+          home.packages = with nixpkgs.legacyPackages.${system}; [
+            starship
+            neovim
+          ] ++ extraPackages;
 
           # Let home-manager manage itself
           programs.home-manager.enable = true;
