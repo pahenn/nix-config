@@ -77,6 +77,13 @@
 
           environment.systemPackages = [
             pkgs.utm
+            pkgs.starship
+
+            # fonts
+            pkgs.nerd-fonts.fira-code
+            pkgs.nerd-fonts.fira-mono
+            pkgs.nerd-fonts.hack
+            pkgs.nerd-fonts.jetbrains-mono
           ] ++ extraPackages;
 
           homebrew = {
@@ -84,12 +91,25 @@
             global.autoUpdate = true;
             brews = extraBrews;
             casks = [
-              "ghostty"
-              "tailscale"
-              "orbstack"
               "brave-browser"
+              "font-fira-code"
+              "font-fira-code-nerd-font"
+              "font-fira-mono-for-powerline"
+              "font-hack-nerd-font"
+              "font-jetbrains-mono-nerd-font"
+              "font-meslo-lg-nerd-font"
+              "ghostty"
+              "orbstack"
+              "tailscale"
             ];
           };
+
+          # programs.starship = {
+          #   enable = true;
+          #   enableZshIntegration = true;
+          #   enableBashIntegration = true;
+          #   # settings = pkgs.lib.importTOML Users/pahenn/nix-config/data/starship/starship.toml;
+          # };
 
           # The platform the configuration will be used on.
           nixpkgs.hostPlatform = "aarch64-darwin";
