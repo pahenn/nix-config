@@ -113,6 +113,7 @@
             pkgs.utm
             pkgs.neovim
             pkgs.starship
+            pkgs.wireguard-tools
 
             # fonts
             pkgs.nerd-fonts.fira-code
@@ -127,7 +128,9 @@
           homebrew = {
             enable = true;
             global.autoUpdate = true;
-            brews = extraBrews;
+            brews = [
+              "qemu"
+            ] ++ extraBrews;
             casks = [
               "brave-browser"
               "font-fira-code"
