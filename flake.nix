@@ -142,6 +142,7 @@
               "ghostty"
               "orbstack"
               "tailscale"
+              "raycast"
             ];
           };
 
