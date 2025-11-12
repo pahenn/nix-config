@@ -130,6 +130,7 @@
             global.autoUpdate = true;
             brews = [
               "qemu"
+              "tree"
             ] ++ extraBrews;
             casks = [
               "brave-browser"
