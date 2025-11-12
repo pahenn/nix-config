@@ -128,9 +128,23 @@
           homebrew = {
             enable = true;
             global.autoUpdate = true;
+            onActivation = {
+              autoUpdate = true;
+              # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
+              upgrade = true;
+            };
             brews = [
               "qemu"
               "tree"
+              "nano"
+              "nanorc"
+              "nvm"
+              "gh"
+              "nvtop"
+              "mactop"
+              "openjdk"
+              "postgresql@16"
+              "pnpm"
             ] ++ extraBrews;
             casks = [
               "brave-browser"
@@ -142,8 +156,24 @@
               "font-meslo-lg-nerd-font"
               "ghostty"
               "orbstack"
-              "tailscale"
+              "tailscale-app"
               "raycast"
+              "cursor"
+              "visual-studio-code"
+              "spotify"
+              "obsidian"
+              "discord"
+              "itsycal"
+              "mos"
+              "gcloud-cli"
+              "tableplus"
+              "lm-studio"
+              "ollama-app"
+              "jan"
+              "lunar"
+              "gpg-suite-no-mail"
+              "zoom"
+              "logi-options+"
             ];
           };
 
@@ -179,6 +209,7 @@
       mutableTaps = false;
       extraBrews = [
         "socat"
+        "uv"
       ];
     };
 
