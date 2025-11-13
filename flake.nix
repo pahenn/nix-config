@@ -86,7 +86,15 @@
     };
 
     # Helper function to create a Darwin configuration with a specific user
-    mkDarwinConfig = { user, autoMigrate ? false, mutableTaps ? true, extraPackages ? [], extraBrews ? [], extraModules ? [] }: nix-darwin.lib.darwinSystem {
+    mkDarwinConfig = { 
+      user, 
+      autoMigrate ? false,
+      mutableTaps ? true,
+      extraPackages ? [],
+      extraBrews ? [],
+      extraCasks ? [],
+      extraModules ? [] 
+    }: nix-darwin.lib.darwinSystem {
       modules = [
         ({ config, pkgs, ... }: {
           # Necessary for using flakes on this system.
@@ -145,6 +153,7 @@
               "openjdk"
               "postgresql@16"
               "pnpm"
+              "yq"
             ] ++ extraBrews;
             casks = [
               "brave-browser"
@@ -162,7 +171,7 @@
               "gcloud-cli"
               "tableplus"
               "lunar"
-              "tastytrade"
+              "notion-calendar"
               # ai
               "lm-studio"
               "ollama-app"
@@ -178,7 +187,7 @@
               "font-hack-nerd-font"
               "font-jetbrains-mono-nerd-font"
               "font-meslo-lg-nerd-font"
-            ];
+            ] ++ extraCasks;
           };
 
           # The platform the configuration will be used on.
@@ -205,7 +214,11 @@
     # macOS configurations
     darwinConfigurations."pahenn-macbook" = mkDarwinConfig {
       user = "pahenn";
-      autoMigrate = true;
+      # autoMigrate = true;
+      mutableTaps = false;
+      extraCasks = [
+        "tastytrade"
+      ];
     };
 
     darwinConfigurations."mini" = mkDarwinConfig {
