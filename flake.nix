@@ -171,7 +171,6 @@
               "gcloud-cli"
               "tableplus"
               "lunar"
-              "notion-calendar"
               # ai
               "lm-studio"
               "ollama-app"
@@ -218,6 +217,7 @@
       mutableTaps = false;
       extraCasks = [
         "tastytrade"
+        "notion-calendar"
       ];
     };
 
