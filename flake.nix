@@ -154,6 +154,11 @@
               "postgresql@16"
               "pnpm"
               "yq"
+              "sqlcmd"
+              "uv"
+              "unixODBC"
+              "freetds"
+              "duckdb"
             ] ++ extraBrews;
             casks = [
               "brave-browser"
@@ -186,6 +191,8 @@
               "font-hack-nerd-font"
               "font-jetbrains-mono-nerd-font"
               "font-meslo-lg-nerd-font"
+              # office
+              "onlyoffice"
             ] ++ extraCasks;
           };
 
@@ -218,6 +225,8 @@
       extraCasks = [
         "tastytrade"
         "notion-calendar"
+        "rectangle"
+        "microsoft-edge"
       ];
     };
 
@@ -226,16 +235,27 @@
       mutableTaps = false;
       extraBrews = [
         "socat"
-        "uv"
       ];
     };
 
-    # home-manager configurations (for Linux systems)
+    # home-manager configurations (for aarch64 Linux systems)
     homeConfigurations."ubuntu@ubuntu" = mkHomeConfig {
       system = "aarch64-linux";
       username = "ubuntu";
       homeDirectory = "/home/ubuntu";
       extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
+        # Add packages here
+        # Note: Tailscale must be installed via snap (see INSTALL.md):
+        # - sudo snap install tailscale
+        # - sudo tailscale up
+      ];
+    };
+    # home-manager configurations (for x86_64 Linux systems - Proxmox VM)
+    homeConfigurations."patrick@patrick-homelab" = mkHomeConfig {
+      system = "x86_64-linux";
+      username = "patrick";
+      homeDirectory = "/home/patrick";
+      extraPackages = with nixpkgs.legacyPackages.x86_64-linux; [
         # Add packages here
         # Note: Tailscale must be installed via snap (see INSTALL.md):
         # - sudo snap install tailscale
