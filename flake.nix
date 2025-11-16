@@ -48,6 +48,7 @@
           # Packages to install
           home.packages = with nixpkgs.legacyPackages.${system}; [
             neovim
+            zsh
 
             # fonts
             nerd-fonts.fira-code
