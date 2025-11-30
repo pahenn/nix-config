@@ -26,9 +26,13 @@
       url = "github:homebrew/homebrew-cask";
       flake = false;
     };
+    supabase-tap = {
+      url = "github:supabase/homebrew-tap";
+      flake = false;
+    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-core, homebrew-cask}:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-core, homebrew-cask, supabase-tap}:
   let
     # Helper function to create a home-manager configuration
     mkHomeConfig = { system, username, homeDirectory, extraPackages ? [], extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
@@ -49,6 +53,8 @@
           home.packages = with nixpkgs.legacyPackages.${system}; [
             neovim
             zsh
+            cloudflared
+            nanorc
 
             # fonts
             nerd-fonts.fira-code
@@ -123,6 +129,8 @@
             pkgs.neovim
             pkgs.starship
             pkgs.wireguard-tools
+            pkgs.cloudflared
+            pkgs.nanorc
 
             # fonts
             pkgs.nerd-fonts.fira-code
@@ -160,6 +168,11 @@
               "unixODBC"
               "freetds"
               "duckdb"
+              "supabase"
+              "minio-mc"
+              "rainfrog"
+              "duf"
+              "htop"
             ] ++ extraBrews;
             casks = [
               "brave-browser"
@@ -181,6 +194,7 @@
               "lm-studio"
               "ollama-app"
               "jan"
+              "claude-code"
               # needs password
               "gpg-suite-no-mail"
               "zoom"
@@ -194,6 +208,7 @@
               "font-meslo-lg-nerd-font"
               # office
               "onlyoffice"
+              "cap"
             ] ++ extraCasks;
           };
 
@@ -210,6 +225,7 @@
             taps = {
               "homebrew/homebrew-core" = homebrew-core;
               "homebrew/homebrew-cask" = homebrew-cask;
+              "supabase/tap" = supabase-tap;
             };
             inherit autoMigrate mutableTaps;
           };
@@ -223,11 +239,15 @@
       user = "pahenn";
       # autoMigrate = true;
       mutableTaps = false;
+      extraBrews = [
+        "immich-cli"
+      ];
       extraCasks = [
         "tastytrade"
         "notion-calendar"
         "rectangle"
         "microsoft-edge"
+        "thunderbird"
       ];
     };
 

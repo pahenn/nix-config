@@ -83,13 +83,21 @@ extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
 ];
 ```
 
-## Manual Setup Required
+## Post-Installation Setup (Ubuntu)
 
-### Ubuntu Server (Tailscale)
+After running `home-manager switch` for the first time on Ubuntu, run the bootstrap script to complete the setup:
+
 ```bash
-sudo snap install tailscale
-sudo tailscale up
+cd ~/nix-config
+./bootstrap-ubuntu.sh
 ```
+
+This script will:
+- Install OpenSSH server for remote access
+- Install Tailscale via snap
+- Add Nix's zsh to `/etc/shells` and set it as your default shell
+
+After the script completes, run `sudo tailscale up` to connect to your Tailscale network, then log out and back in for the shell change to take effect.
 
 ## Structure
 
