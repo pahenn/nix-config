@@ -173,6 +173,9 @@
               "rainfrog"
               "duf"
               "htop"
+              "git-filter-repo"
+              "awscli"
+              # "opencode" # opt for direct install -> curl -fsSL https://opencode.ai/install | bash
             ] ++ extraBrews;
             casks = [
               "brave-browser"
@@ -194,7 +197,7 @@
               "lm-studio"
               "ollama-app"
               "jan"
-              "claude-code"
+              # "claude-code" # moving this into native binary install direct from Anthropic -> curl -fsSL https://claude.ai/install.sh | bash
               # needs password
               "gpg-suite-no-mail"
               "zoom"
@@ -209,6 +212,10 @@
               # office
               "onlyoffice"
               "cap"
+              # security
+              # "bitwarden" # need to use mac app to get browser integration
+              "macwhisper"
+              "rustdesk"
             ] ++ extraCasks;
           };
 
@@ -240,14 +247,13 @@
       # autoMigrate = true;
       mutableTaps = false;
       extraBrews = [
-        "immich-cli"
+        
       ];
       extraCasks = [
         "tastytrade"
         "notion-calendar"
         "rectangle"
-        "microsoft-edge"
-        "thunderbird"
+        "bambu-studio"
       ];
     };
 
