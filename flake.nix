@@ -257,8 +257,8 @@
       ];
     };
 
-    darwinConfigurations."mini" = mkDarwinConfig {
-      user = "home";
+    darwinConfigurations."home-mini" = mkDarwinConfig {
+      user = "pahenn";
       mutableTaps = false;
       extraBrews = [
         "socat"

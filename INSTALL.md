@@ -4,10 +4,10 @@ This guide covers installing Nix and the required tools for each platform.
 
 ## macOS Installation
 
-### 1. Install Nix (Determinate Systems Installer - Recommended)
+### 1. Install Lix
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+curl -sSf -L https://install.lix.systems/lix | sh -s -- install
 ```
 
 Or use the official installer:
@@ -58,6 +58,7 @@ echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
 ```
 
 **Verify it works:**
+
 ```bash
 nix --version  # Should show Nix version
 ```
@@ -109,12 +110,14 @@ home-manager switch --flake .#ubuntu@ubuntu
 ### macOS: "darwin-rebuild: command not found"
 
 The installer should have added Nix to your PATH. Try:
+
 - Restart your terminal
 - Or manually source: `source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh`
 
 ### Linux: "nix: command not found"
 
 After installation, you may need to:
+
 - Restart your shell session
 - Or manually source: `. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh`
 
