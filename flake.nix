@@ -16,23 +16,9 @@
     };
 
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
-
-    # Optional: Declarative tap management
-    homebrew-core = {
-      url = "github:homebrew/homebrew-core";
-      flake = false;
-    };
-    homebrew-cask = {
-      url = "github:homebrew/homebrew-cask";
-      flake = false;
-    };
-    supabase-tap = {
-      url = "github:supabase/homebrew-tap";
-      flake = false;
-    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-core, homebrew-cask, supabase-tap}:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew }:
   let
     # Helper function to create a home-manager configuration
     mkHomeConfig = { system, username, homeDirectory, extraPackages ? [], extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
@@ -104,6 +90,18 @@
     }: nix-darwin.lib.darwinSystem {
       modules = [
         ({ config, pkgs, ... }: {
+          # Migrate to Lix
+          nixpkgs.overlays = [ (final: prev: {
+            inherit (prev.lixPackageSets.stable)
+              nixpkgs-review
+              nix-eval-jobs
+              nix-fast-build
+              colmena;
+          }) ];
+
+          nix.package = pkgs.lixPackageSets.stable.lix;
+
+
           # Necessary for using flakes on this system.
           nix.settings.experimental-features = "nix-command flakes";
 
@@ -144,15 +142,18 @@
 
           homebrew = {
             enable = true;
+            taps = [ "supabase/tap" ];
             global.autoUpdate = true;
             onActivation = {
               autoUpdate = true;
-              # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
               upgrade = true;
+              # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
+              cleanup = "zap";
             };
             brews = [
               "qemu"
               "tree"
+              "go"
               "nano"
               "nanorc"
               "nvm"
@@ -176,6 +177,7 @@
               "git-filter-repo"
               "awscli"
               # "opencode" # opt for direct install -> curl -fsSL https://opencode.ai/install | bash
+              "ollama"
             ] ++ extraBrews;
             casks = [
               "brave-browser"
@@ -229,11 +231,6 @@
           nix-homebrew = {
             enable = true;
             user = user;
-            taps = {
-              "homebrew/homebrew-core" = homebrew-core;
-              "homebrew/homebrew-cask" = homebrew-cask;
-              "supabase/tap" = supabase-tap;
-            };
             inherit autoMigrate mutableTaps;
           };
         }
@@ -245,7 +242,7 @@
     darwinConfigurations."pahenn-macbook" = mkDarwinConfig {
       user = "pahenn";
       # autoMigrate = true;
-      mutableTaps = false;
+      mutableTaps = true;
       extraBrews = [
         
       ];
@@ -259,7 +256,7 @@
 
     darwinConfigurations."home-mini" = mkDarwinConfig {
       user = "pahenn";
-      mutableTaps = false;
+      mutableTaps = true;
       extraBrews = [
         "socat"
       ];
