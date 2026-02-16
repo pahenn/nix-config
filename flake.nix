@@ -130,6 +130,16 @@
             '';
           };
 
+          # Configure git to use GPG signing
+          programs.git = {
+            enable = true;
+            config = {
+              user.signingkey = "3FCD60AD3C53CFA3";
+              commit.gpgsign = true;
+              gpg.program = "/usr/local/bin/gpg";
+            };
+          };
+
           environment.systemPackages = [
             pkgs.utm
             pkgs.neovim
@@ -194,7 +204,6 @@
               "ghostty"
               "obsidian"
               "raycast"
-              "tailscale-app"
               "cursor"
               "orbstack"
               "visual-studio-code"
@@ -205,6 +214,7 @@
               "gcloud-cli"
               "tableplus"
               "lunar"
+              "rectangle"
               # ai
               "lm-studio"
               "ollama-app"
@@ -259,8 +269,8 @@
       extraCasks = [
         "tastytrade"
         "notion-calendar"
-        "rectangle"
         "bambu-studio"
+        "tailscale-app"
       ];
     };
 
@@ -268,7 +278,7 @@
       user = "pahenn";
       mutableTaps = true;
       extraBrews = [
-        "socat"
+        "tailscale"
       ];
     };
 
