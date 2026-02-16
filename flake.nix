@@ -120,7 +120,13 @@
           '';
 
           # Create /etc/zshrc that loads the nix-darwin environment.
-          programs.zsh.enable = true;
+          programs.zsh = {
+            enable = true;
+            interactiveShellInit = ''
+              # Initialize Starship prompt
+              eval "$(${pkgs.starship}/bin/starship init zsh)"
+            '';
+          };
 
           environment.systemPackages = [
             pkgs.utm
