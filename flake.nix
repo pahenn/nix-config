@@ -130,15 +130,8 @@
             '';
           };
 
-          # Configure git to use GPG signing
-          programs.git = {
-            enable = true;
-            config = {
-              user.signingkey = "3FCD60AD3C53CFA3";
-              commit.gpgsign = true;
-              gpg.program = "/usr/local/bin/gpg";
-            };
-          };
+          # Note: Git GPG signing is configured via ~/.gitconfig
+          # (set with: git config --global user.signingkey, commit.gpgsign, gpg.program)
 
           environment.systemPackages = [
             pkgs.utm
@@ -217,7 +210,6 @@
               "rectangle"
               # ai
               "lm-studio"
-              "ollama-app"
               "jan"
               # "claude-code" # moving this into native binary install direct from Anthropic -> curl -fsSL https://claude.ai/install.sh | bash
               # needs password
@@ -277,6 +269,9 @@
     darwinConfigurations."home-mini" = mkDarwinConfig {
       user = "pahenn";
       mutableTaps = true;
+      extraCasks = [
+        "tastytrade"
+      ];
       extraBrews = [
         "tailscale"
       ];
