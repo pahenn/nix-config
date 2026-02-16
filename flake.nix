@@ -148,7 +148,7 @@
 
           homebrew = {
             enable = true;
-            taps = [ "supabase/tap" ];
+            taps = [ ];
             global.autoUpdate = true;
             onActivation = {
               autoUpdate = true;
@@ -175,7 +175,6 @@
               "unixODBC"
               "freetds"
               "duckdb"
-              "supabase"
               "minio-mc"
               "rainfrog"
               "duf"
