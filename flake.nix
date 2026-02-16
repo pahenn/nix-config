@@ -184,6 +184,9 @@
               "awscli"
               # "opencode" # opt for direct install -> curl -fsSL https://opencode.ai/install | bash
               "ollama"
+              "llama.cpp"
+              "mlx"
+              "mlx-lm"
             ] ++ extraBrews;
             casks = [
               "brave-browser"

@@ -8,21 +8,26 @@ Multi-machine Nix configuration using flakes for macOS (nix-darwin) and Linux (h
 
 ### macOS (nix-darwin)
 
-- **pahenn-macbook-pro**: Personal MacBook Pro
+- **pahenn-macbook**: Personal MacBook Pro
   - User: `pahenn`
-  - Homebrew auto-migration enabled
+  - Extra casks: tastytrade, notion-calendar, rectangle, bambu-studio
 
-- **mini**: Mac Mini
-  - User: `home`
+- **home-mini**: Mac Mini
+  - User: `pahenn`
   - Extra brews: `socat`
-  - Immutable Homebrew taps
 
 ### Linux (home-manager)
 
-- **ubuntu**: Ubuntu VM running on Mac Mini
+- **ubuntu@ubuntu**: Ubuntu VM running on Mac Mini (aarch64)
   - User: `ubuntu`
   - Hostname: `ubuntu`
   - Home directory: `/home/ubuntu`
+  - Note: Tailscale must be installed via snap (see below)
+
+- **patrick@patrick-homelab**: Proxmox VM (x86_64)
+  - User: `patrick`
+  - Hostname: `patrick-homelab`
+  - Home directory: `/home/patrick`
   - Note: Tailscale must be installed via snap (see below)
 
 ## Usage
@@ -32,32 +37,32 @@ Multi-machine Nix configuration using flakes for macOS (nix-darwin) and Linux (h
 ### macOS
 
 ```bash
-# Build and activate configuration
-darwin-rebuild switch --flake .#pahenn-macbook-pro
+# Build and activate configuration (requires sudo)
+sudo darwin-rebuild switch --flake ~/nix-config#pahenn-macbook
 # or
-darwin-rebuild switch --flake .#mini
-# or just: darwin-rebuild switch (auto-detects hostname)
+sudo darwin-rebuild switch --flake ~/nix-config#home-mini
 
 # Quick reference - pull latest changes and rebuild:
-cd ~/.config/nix && git pull && darwin-rebuild switch --flake .#pahenn-macbook-pro
-# or for mini:
-cd ~/.config/nix && git pull && darwin-rebuild switch --flake .#mini
-# or: cd ~/.config/nix && git pull && darwin-rebuild switch
+cd ~/nix-config && git pull && sudo darwin-rebuild switch --flake ~/nix-config#pahenn-macbook
+# or for home-mini:
+cd ~/nix-config && git pull && sudo darwin-rebuild switch --flake ~/nix-config#home-mini
 ```
+
+**Note:** Using `--flake ~/nix-config#<config-name>` reads directly from your git repository, eliminating the need to manually copy files to `/etc/nix-darwin`. This is the recommended flake-native approach.
 
 ### Linux (Ubuntu)
 
 ```bash
 # First time setup (only needed once)
+cd ~/nix-config
 nix flake update
-nix run home-manager/master -- switch --flake .#ubuntu@ubuntu
+nix run home-manager/master -- switch --flake ~/nix-config#ubuntu@ubuntu
 
 # Subsequent updates (use this after the first time)
-home-manager switch --flake .#ubuntu@ubuntu
-# or just: home-manager switch (auto-detects user@hostname)
+home-manager switch --flake ~/nix-config#ubuntu@ubuntu
 
-# Quick reference - after initial setup, just run:
-cd ~/nix-config && git pull && home-manager switch
+# Quick reference - after initial setup, pull and rebuild:
+cd ~/nix-config && git pull && home-manager switch --flake ~/nix-config#ubuntu@ubuntu
 ```
 
 ## Adding Packages
