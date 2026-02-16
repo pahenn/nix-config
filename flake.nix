@@ -122,6 +122,8 @@
           # Create /etc/zshrc that loads the nix-darwin environment.
           programs.zsh = {
             enable = true;
+            # Disable the default prompt (which would override Starship)
+            promptInit = "";
             interactiveShellInit = ''
               # Initialize Starship prompt
               eval "$(${pkgs.starship}/bin/starship init zsh)"
