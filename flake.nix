@@ -231,6 +231,8 @@
               # "bitwarden" # need to use mac app to get browser integration
               "macwhisper"
               "rustdesk"
+              # aws
+              "session-manager-plugin"
             ] ++ extraCasks;
           };
 
