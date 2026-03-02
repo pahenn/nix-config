@@ -198,7 +198,6 @@
               "ghostty"
               "obsidian"
               "raycast"
-              "cursor"
               "orbstack"
               "visual-studio-code"
               "spotify"
