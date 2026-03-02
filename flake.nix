@@ -224,6 +224,7 @@
               "font-jetbrains-mono-nerd-font"
               "font-meslo-lg-nerd-font"
               # office
+              "microsoft-office"
               "onlyoffice"
               "cap"
               # security
