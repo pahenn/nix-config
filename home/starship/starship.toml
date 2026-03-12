@@ -1,5 +1,7 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
+command_timeout = 1000  # milliseconds (default is 500)
+
 format = """
 [](color_orange)\
 $os\

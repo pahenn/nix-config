@@ -225,8 +225,11 @@
               "font-meslo-lg-nerd-font"
               # office
               "microsoft-office"
+              "microsoft-teams"
               "onlyoffice"
               "cap"
+              "tastytrade"
+              "tailscale-app"
               # security
               # "bitwarden" # need to use mac app to get browser integration
               "macwhisper"
@@ -262,10 +265,8 @@
         
       ];
       extraCasks = [
-        "tastytrade"
         "notion-calendar"
         "bambu-studio"
-        "tailscale-app"
       ];
     };
 
@@ -273,7 +274,6 @@
       user = "pahenn";
       mutableTaps = true;
       extraCasks = [
-        "tastytrade"
       ];
       extraBrews = [
         "tailscale"
