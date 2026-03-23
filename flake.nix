@@ -140,6 +140,7 @@
             pkgs.wireguard-tools
             pkgs.cloudflared
             pkgs.nanorc
+            pkgs.sshpass
 
             # fonts
             pkgs.nerd-fonts.fira-code
@@ -192,6 +193,7 @@
               "llama.cpp"
               "mlx"
               "mlx-lm"
+              # other
             ] ++ extraBrews;
             casks = [
               "brave-browser"
@@ -224,8 +226,6 @@
               "font-jetbrains-mono-nerd-font"
               "font-meslo-lg-nerd-font"
               # office
-              "microsoft-office"
-              "microsoft-teams"
               "onlyoffice"
               "cap"
               "tastytrade"
