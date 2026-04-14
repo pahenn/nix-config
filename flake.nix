@@ -127,6 +127,11 @@
             interactiveShellInit = ''
               # Initialize Starship prompt
               eval "$(${pkgs.starship}/bin/starship init zsh)"
+
+              # Initialize nvm
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+              [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
             '';
           };
 
@@ -151,6 +156,13 @@
 
           # Point starship to config in this repo via environment variable
           environment.variables.STARSHIP_CONFIG = "$HOME/nix-config/home/starship/starship.toml";
+
+          # Ensure brew-installed node (pulled as a dependency) never shadows nvm
+          system.activationScripts.postActivation.text = ''
+            if /opt/homebrew/bin/brew ls --versions node &>/dev/null; then
+              /opt/homebrew/bin/brew unlink node 2>/dev/null || true
+            fi
+          '';
 
           homebrew = {
             enable = true;
