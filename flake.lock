@@ -37,6 +37,22 @@
         "type": "github"
       }
     },
+    "homebrew-omlx": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1777011947,
+        "narHash": "sha256-lrFsZd2NKxoPvP7YCFxeg4z4VyVQfzuD2s1cwPKNHCM=",
+        "owner": "jundot",
+        "repo": "omlx",
+        "rev": "cb466fc4052fc34d11249c78e998590a03a00c7a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jundot",
+        "repo": "omlx",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -94,6 +110,7 @@
     "root": {
       "inputs": {
         "home-manager": "home-manager",
+        "homebrew-omlx": "homebrew-omlx",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs"

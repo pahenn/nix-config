@@ -16,9 +16,14 @@
     };
 
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+
+    homebrew-omlx = {
+      url = "github:jundot/omlx";
+      flake = false;
+    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew }:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-omlx }:
   let
     # Helper function to create a home-manager configuration
     mkHomeConfig = { system, username, homeDirectory, extraPackages ? [], extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
@@ -166,7 +171,6 @@
 
           homebrew = {
             enable = true;
-            taps = [ ];
             global.autoUpdate = true;
             onActivation = {
               autoUpdate = true;
@@ -205,6 +209,7 @@
               "llama.cpp"
               "mlx"
               "mlx-lm"
+              "omlx"
               # other
             ] ++ extraBrews;
             casks = [
@@ -262,6 +267,9 @@
             enable = true;
             user = user;
             inherit autoMigrate mutableTaps;
+            taps = {
+              "jundot/homebrew-omlx" = homebrew-omlx;
+            };
           };
         }
       ] ++ extraModules; # Allow additional custom modules per-machine
