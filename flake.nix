@@ -244,6 +244,7 @@
               "font-meslo-lg-nerd-font"
               # office
               "onlyoffice"
+              "microsoft-office"
               "cap"
               "tastytrade"
               "tailscale-app"
