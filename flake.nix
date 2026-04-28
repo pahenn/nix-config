@@ -203,7 +203,6 @@
               "htop"
               "git-filter-repo"
               "awscli"
-              "bitwarden-cli"
               # "opencode" # opt for direct install -> curl -fsSL https://opencode.ai/install | bash
               "ollama"
               "llama.cpp"
