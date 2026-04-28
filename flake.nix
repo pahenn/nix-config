@@ -176,7 +176,7 @@
               autoUpdate = true;
               upgrade = true;
               # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
-              cleanup = "zap";
+              # cleanup = "zap"; # this is even worse than uninstall
             };
             brews = [
               "qemu"
@@ -244,7 +244,8 @@
               "font-meslo-lg-nerd-font"
               # office
               "onlyoffice"
-              "microsoft-office"
+              # "microsoft-office"
+              "microsoft-teams"
               "cap"
               "tastytrade"
               "tailscale-app"
