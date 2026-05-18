@@ -233,7 +233,7 @@
               # needs password
               "gpg-suite-no-mail"
               "zoom"
-              "logi-options+"
+              # "logi-options+"
               # fonts
               "font-fira-code"
               "font-fira-code-nerd-font"
@@ -246,7 +246,7 @@
               # "microsoft-office"
               "microsoft-teams"
               "cap"
-              "tastytrade"
+              # "tastytrade"
               "tailscale-app"
               # security
               # "bitwarden" # need to use mac app to get browser integration
