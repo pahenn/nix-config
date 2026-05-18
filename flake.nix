@@ -286,8 +286,8 @@
         
       ];
       extraCasks = [
-        "notion-calendar"
-        "bambu-studio"
+        # "notion-calendar"
+        # "bambu-studio"
       ];
     };
 
