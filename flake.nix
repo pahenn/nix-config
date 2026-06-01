@@ -189,7 +189,7 @@
               "nvtop"
               "mactop"
               "openjdk"
-              "postgresql@16"
+              "postgresql@18"
               "pnpm"
               "yq"
               "sqlcmd"
@@ -244,7 +244,7 @@
               # office
               "onlyoffice"
               # "microsoft-office"
-              "microsoft-teams"
+              # "microsoft-teams"
               "cap"
               # "tastytrade"
               "tailscale-app"
