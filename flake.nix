@@ -178,6 +178,9 @@
               # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
               # cleanup = "zap"; # this is even worse than uninstall
             };
+            taps = [
+              "coollabsio/coolify-cli"
+            ];
             brews = [
               "qemu"
               "tree"
@@ -203,6 +206,7 @@
               "htop"
               "git-filter-repo"
               "awscli"
+              "coollabsio/coolify-cli/coolify-cli"
               # "opencode" # opt for direct install -> curl -fsSL https://opencode.ai/install | bash
               "ollama"
               "llama.cpp"
