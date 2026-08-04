@@ -21,9 +21,14 @@
       url = "github:jundot/omlx";
       flake = false;
     };
+
+    homebrew-coolify-cli = {
+      url = "github:coollabsio/homebrew-coolify-cli";
+      flake = false;
+    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-omlx }:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-omlx, homebrew-coolify-cli }:
   let
     # Helper function to create a home-manager configuration
     mkHomeConfig = { system, username, homeDirectory, extraPackages ? [], extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
@@ -162,6 +167,16 @@
           # Point starship to config in this repo via environment variable
           environment.variables.STARSHIP_CONFIG = "$HOME/nix-config/home/starship/starship.toml";
 
+          # Homebrew 6.x requires third-party taps to be explicitly trusted via
+          # `brew trust`, which writes to ~/.homebrew/trust.json (outside nix).
+          # Opt out system-wide instead. This must live in brew.env rather than
+          # environment.variables: nix-darwin runs `brew bundle` under
+          # `sudo --preserve-env=PATH`, which strips every other variable, but
+          # bin/brew sources this file itself on every invocation.
+          environment.etc."homebrew/brew.env".text = ''
+            HOMEBREW_NO_REQUIRE_TAP_TRUST=1
+          '';
+
           # Ensure brew-installed node (pulled as a dependency) never shadows nvm
           system.activationScripts.postActivation.text = ''
             if /opt/homebrew/bin/brew ls --versions node &>/dev/null; then
@@ -178,9 +193,6 @@
               # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
               # cleanup = "zap"; # this is even worse than uninstall
             };
-            taps = [
-              "coollabsio/coolify-cli"
-            ];
             brews = [
               "qemu"
               "tree"
@@ -249,7 +261,7 @@
               "onlyoffice"
               # "microsoft-office"
               # "microsoft-teams"
-              "cap"
+              # "cap"
               # "tastytrade"
               "tailscale-app"
               # security
@@ -274,6 +286,7 @@
             inherit autoMigrate mutableTaps;
             taps = {
               "jundot/homebrew-omlx" = homebrew-omlx;
+              "coollabsio/homebrew-coolify-cli" = homebrew-coolify-cli;
             };
           };
         }

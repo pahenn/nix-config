@@ -37,6 +37,22 @@
         "type": "github"
       }
     },
+    "homebrew-coolify-cli": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1776682459,
+        "narHash": "sha256-RqUMmiYH5Uv2bn49lQbF7RKDaqa8+Lm9iWodiReQM3s=",
+        "owner": "coollabsio",
+        "repo": "homebrew-coolify-cli",
+        "rev": "c7482eae6045fe885fec2ead7eef6b2e7ff1dc18",
+        "type": "github"
+      },
+      "original": {
+        "owner": "coollabsio",
+        "repo": "homebrew-coolify-cli",
+        "type": "github"
+      }
+    },
     "homebrew-omlx": {
       "flake": false,
       "locked": {
@@ -110,6 +126,7 @@
     "root": {
       "inputs": {
         "home-manager": "home-manager",
+        "homebrew-coolify-cli": "homebrew-coolify-cli",
         "homebrew-omlx": "homebrew-omlx",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
