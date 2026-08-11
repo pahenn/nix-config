@@ -26,9 +26,14 @@
       url = "github:coollabsio/homebrew-coolify-cli";
       flake = false;
     };
+
+    homebrew-egoist = {
+      url = "github:egoist/homebrew-tap";
+      flake = false;
+    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-omlx, homebrew-coolify-cli }:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-omlx, homebrew-coolify-cli, homebrew-egoist }:
   let
     # Helper function to create a home-manager configuration
     mkHomeConfig = { system, username, homeDirectory, extraPackages ? [], extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
@@ -234,6 +239,7 @@
               "raycast"
               "orbstack"
               "visual-studio-code"
+              "egoist/tap/kero"
               "spotify"
               "discord"
               "itsycal"
@@ -287,6 +293,7 @@
             taps = {
               "jundot/homebrew-omlx" = homebrew-omlx;
               "coollabsio/homebrew-coolify-cli" = homebrew-coolify-cli;
+              "egoist/homebrew-tap" = homebrew-egoist;
             };
           };
         }
