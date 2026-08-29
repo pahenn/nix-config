@@ -276,6 +276,7 @@
               # "rustdesk" # errors on macbook pro
               # aws
               "session-manager-plugin"
+              "orcaslicer"
             ] ++ extraCasks;
           };
 
