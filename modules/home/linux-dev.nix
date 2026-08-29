@@ -73,8 +73,16 @@ in
           echo "claude-code: present at ~/.local/bin/claude, leaving alone"
         else
           echo "claude-code: installing from https://claude.ai/install.sh"
+          # Both the pipe target and the installer's own PATH must be explicit.
+          # home-manager's activation PATH is minimal, so letting `| bash`
+          # resolve from it is what made the first attempt fail while the same
+          # command succeeded by hand.
           $DRY_RUN_CMD ${pkgs.bash}/bin/bash -c \
-            '${pkgs.curl}/bin/curl -fsSL https://claude.ai/install.sh | bash' \
+            'export PATH="${lib.makeBinPath [
+                pkgs.curl pkgs.bash pkgs.coreutils pkgs.gnutar pkgs.gzip
+                pkgs.gnugrep pkgs.gnused pkgs.which
+              ]}:$PATH"; \
+             curl -fsSL https://claude.ai/install.sh | bash' \
             || echo "claude-code: install FAILED — continuing activation" >&2
         fi
       '');
