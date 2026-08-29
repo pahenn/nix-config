@@ -118,9 +118,22 @@
       "orcaslicer"
       "alt-tab"
       "orchard"
-      "bambu-studio"
       "microsoft-teams"
-      "rustdesk"
+      # bambu-studio and rustdesk are deliberately NOT declared.
+      #
+      # Both apps are in /Applications but were not placed there by brew, and
+      # their versions are older than the current cask (BambuStudio 02.05 vs
+      # 02.08, RustDesk 1.4.6 vs 1.4.9). `brew bundle` refuses to adopt an
+      # existing app when the version differs, fails, and — because nix-darwin
+      # runs brew inside the activation script — aborts the whole switch before
+      # home-manager gets to run. That is how generation 107 applied the system
+      # layer and none of the user layer.
+      #
+      # The failed attempt also purged brew's registration of both, so brew no
+      # longer tracks them: cleanup will not remove them, and the apps stay put.
+      # This is the state they were already in. Declaring them again means
+      # forcing an app upgrade with `brew install --cask --force`, which is a
+      # deliberate act, not something a rebuild should do.
     ];
   };
 
