@@ -17,4 +17,14 @@
 
   # Necessary for using flakes on this system.
   nix.settings.experimental-features = "nix-command flakes";
+
+  # The store only ever grew before this. Weekly, keep a month of generations.
+  nix.gc = {
+    automatic = true;
+    interval = { Weekday = 7; Hour = 3; Minute = 0; };
+    options = "--delete-older-than 30d";
+  };
+
+  # Hard-link identical files in the store.
+  nix.optimise.automatic = true;
 }

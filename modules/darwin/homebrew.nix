@@ -20,12 +20,19 @@
 
   homebrew = {
     enable = true;
-    global.autoUpdate = true;
+    # Formula definitions are refreshed deliberately, not on every switch.
+    # With upgrade = true every `darwin-rebuild switch` moved all 30 brews to
+    # whatever shipped that day, which defeats pinning postgresql@18 and means
+    # two machines rebuilt a week apart diverge. To take updates:
+    #   brew update && brew upgrade
+    global.autoUpdate = false;
     onActivation = {
-      autoUpdate = true;
-      upgrade = true;
-      # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
-      # cleanup = "zap"; # this is even worse than uninstall
+      autoUpdate = false;
+      upgrade = false;
+      # The lists below are now the source of truth: anything installed but not
+      # named here is removed on the next switch. "zap" would also delete app
+      # data, which is why it is not used.
+      cleanup = "uninstall";
     };
 
     brews = [
@@ -34,7 +41,6 @@
       "go"
       "nano"
       "nanorc"
-      "nvm"
       "gh"
       "nvtop"
       "mactop"
@@ -53,6 +59,13 @@
       "htop"
       "git-filter-repo"
       "awscli"
+      "aws-elasticbeanstalk"
+      "nmap"
+      "rust"
+      "tailscale"
+      # Declared alongside postgresql@18: @16 is what ~/.zshrc has always put on
+      # PATH, so it stays until the client tooling is moved over deliberately.
+      "postgresql@16"
       "coollabsio/coolify-cli/coolify-cli"
       # "opencode" # opt for direct install -> curl -fsSL https://opencode.ai/install | bash
       "ollama"
@@ -60,6 +73,10 @@
       "mlx"
       "mlx-lm"
       "omlx"
+      # Required by the installed omlx build. The current omlx formula no longer
+      # declares it, so `brew bundle cleanup` would remove it and break omlx —
+      # confirmed with `brew uses --installed python@3.11`.
+      "python@3.11"
     ];
 
     casks = [
@@ -99,6 +116,11 @@
       # aws
       "session-manager-plugin"
       "orcaslicer"
+      "alt-tab"
+      "orchard"
+      "bambu-studio"
+      "microsoft-teams"
+      "rustdesk"
     ];
   };
 

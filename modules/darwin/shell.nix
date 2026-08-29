@@ -1,19 +1,15 @@
-# System-level shell wiring. User-level shell config lives in modules/home/shell.nix.
-{ pkgs, ... }:
+# System-level shell wiring only. The prompt, PATH, aliases and functions are
+# home-manager's job now — see modules/home/shell.nix and modules/home/darwin.nix.
+#
+# Starship used to be initialised here *and* at the bottom of ~/.zshrc, and nvm
+# was sourced here from ~/.nvm while ~/.zshrc sourced Homebrew's copy over the
+# top. Both are now done exactly once, by home-manager.
+{ ... }:
 {
   # Create /etc/zshrc that loads the nix-darwin environment.
   programs.zsh = {
     enable = true;
     # Disable the default prompt (which would override Starship)
     promptInit = "";
-    interactiveShellInit = ''
-      # Initialize Starship prompt
-      eval "$(${pkgs.starship}/bin/starship init zsh)"
-
-      # Initialize nvm
-      export NVM_DIR="$HOME/.nvm"
-      [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-      [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
-    '';
   };
 }

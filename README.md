@@ -1,181 +1,85 @@
 # Nix Configuration
 
-Multi-machine Nix configuration using flakes for macOS (nix-darwin) and Linux (home-manager).
+Flake-based configuration for two Macs (nix-darwin) and two Linux dev boxes
+(home-manager). See [INSTALL.md](INSTALL.md) to set up a new machine.
 
-**New to this setup?** See [INSTALL.md](INSTALL.md) for installation instructions.
+## Layout
+
+```
+flake.nix              inputs, and one line per machine — nothing else
+lib/                   mkDarwin / mkHome
+hosts/                 one file per machine; the only place a machine name lives
+modules/darwin/        system-level, macOS only
+modules/home/          user-level, shared by macOS and Linux
+```
+
+The point of `modules/home/` is that the Mac and the dev boxes get the *same*
+shell. Before this split the Macs' `~/.zshrc` was 162 unmanaged lines and only
+Linux had home-manager.
+
+Package lists are not threaded through function arguments. The module system
+merges `homebrew.brews`, `environment.systemPackages` and `home.packages` across
+modules, so a host adds to them by setting them directly:
+`homebrew.brews = [ "something" ];` in a host file merges with the shared list.
 
 ## Machines
 
-### macOS (nix-darwin)
-
-- **pahenn-macbook**: Personal MacBook Pro
-  - User: `pahenn`
-  - Extra casks: tastytrade, notion-calendar, rectangle, bambu-studio
-
-- **home-mini**: Mac Mini
-  - User: `pahenn`
-  - Extra brews: `socat`
-
-### Linux (home-manager)
-
-- **ubuntu@ubuntu**: Ubuntu VM running on Mac Mini (aarch64)
-  - User: `ubuntu`
-  - Hostname: `ubuntu`
-  - Home directory: `/home/ubuntu`
-  - Note: Tailscale must be installed via snap (see below)
-
-- **patrick@patrick-homelab**: Proxmox VM (x86_64)
-  - User: `patrick`
-  - Hostname: `patrick-homelab`
-  - Home directory: `/home/patrick`
-  - Note: Tailscale must be installed via snap (see below)
-
-## Usage
-
-**Note:** Configuration names match hostnames, so the `--flake .#<name>` argument is optional if you're on that machine. You can just run `darwin-rebuild switch` or `home-manager switch` without specifying the configuration name.
-
-### macOS
+| Config | What |
+|---|---|
+| `pahenn-macbook` | MacBook Pro |
+| `home-mini` | Mac Mini |
+| `pahenn@devbox` | CT 118 on lab1, `10.73.42.140` — personal dev box |
+| `pahenn@mfcdev` | CT 119 on lab1, `10.73.42.156` — dev box with an employer path |
 
 ```bash
-# Build and activate configuration (requires sudo)
-sudo darwin-rebuild switch --flake ~/nix-config#pahenn-macbook
-# or
-sudo darwin-rebuild switch --flake ~/nix-config#home-mini
-
-# Quick reference - pull latest changes and rebuild:
-cd ~/nix-config && git pull && sudo darwin-rebuild switch --flake ~/nix-config#pahenn-macbook
-# or for home-mini:
-cd ~/nix-config && git pull && sudo darwin-rebuild switch --flake ~/nix-config#home-mini
+sudo darwin-rebuild switch --flake .#pahenn-macbook
+home-manager switch --flake .#pahenn@devbox
 ```
 
-**Note:** Using `--flake ~/nix-config#<config-name>` reads directly from your git repository, eliminating the need to manually copy files to `/etc/nix-darwin`. This is the recommended flake-native approach.
+All four machines evaluate to just two closures today, which is correct rather
+than a bug. The Macs are identical because the `tailscale` brew that used to be
+Mac-Mini-only turned out to be installed on both. `devbox` and `mfcdev` are
+identical because they differ in Docker and the employer tailnet, and both of
+those live in the `mfc-work` container rather than the host shell.
 
-### Linux (Ubuntu)
+## Adding things
+
+| | where |
+|---|---|
+| CLI tool, any machine | `modules/home/default.nix` → `home.packages` |
+| CLI tool, dev boxes only | `modules/home/linux-dev.nix` |
+| macOS GUI app | `modules/darwin/homebrew.nix` → `casks` |
+| macOS CLI better from brew | `modules/darwin/homebrew.nix` → `brews` |
+| one machine only | that machine's file in `hosts/` |
+| a new machine | a file in `hosts/`, plus one line in `flake.nix` |
+
+## Things that will bite
+
+**Homebrew is now authoritative.** `cleanup = "uninstall"` is on, so removing an
+entry actually removes the package — which it did not before, and is why ten
+packages had drifted out of this file. Dry-run any change:
 
 ```bash
-# First time setup (only needed once)
-cd ~/nix-config
-nix flake update
-nix run home-manager/master -- switch --flake ~/nix-config#ubuntu@ubuntu
-
-# Subsequent updates (use this after the first time)
-home-manager switch --flake ~/nix-config#ubuntu@ubuntu
-
-# Quick reference - after initial setup, pull and rebuild:
-cd ~/nix-config && git pull && home-manager switch --flake ~/nix-config#ubuntu@ubuntu
+nix eval --raw .#darwinConfigurations.pahenn-macbook.config.homebrew.brewfile > /tmp/Brewfile
+brew bundle cleanup --file=/tmp/Brewfile
 ```
 
-## Adding Packages
+**Brews are no longer auto-upgraded.** `upgrade = true` moved all 30 formulae to
+whatever shipped that day on every switch, which defeated pinning
+`postgresql@18` and meant two machines rebuilt a week apart diverged. Take
+updates with `brew update && brew upgrade`.
 
-### macOS - Nix packages
-Add to `extraPackages` in the machine configuration:
-```nix
-extraPackages = with pkgs; [
-  htop
-  vim
-];
-```
+**`~/.zshrc` is a read-only symlink.** Installers that append to it (Amazon Q,
+opencode, OpenKnowledge, Antigravity) will fail. Add the line here, or to
+`~/.zshrc.local`, which is sourced last and stays writable.
 
-### macOS - Homebrew packages
-Add to `extraBrews` for CLI tools or `homebrew.casks` for GUI apps.
+**`~/.zprofile` is not managed**, on purpose — it holds `brew shellenv`, and
+losing that loses Homebrew from PATH entirely.
 
-### Linux - Nix packages
-Add to `extraPackages` in the home-manager configuration:
-```nix
-extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
-  git
-  htop
-];
-```
+**`~/.gitconfig` outranks the generated config.** home-manager writes
+`~/.config/git/config`; git reads `~/.gitconfig` after it. Move the old one
+aside on first switch or it silently wins.
 
-## Post-Installation Setup (Ubuntu)
-
-After running `home-manager switch` for the first time on Ubuntu, run the bootstrap script to complete the setup:
-
-```bash
-cd ~/nix-config
-./bootstrap-ubuntu.sh
-```
-
-This script will:
-- Install OpenSSH server for remote access
-- Install Tailscale via snap
-- Add Nix's zsh to `/etc/shells` and set it as your default shell
-
-After the script completes, run `sudo tailscale up` to connect to your Tailscale network, then log out and back in for the shell change to take effect.
-
-## Structure
-
-- `mkDarwinConfig`: Helper function for macOS configurations
-  - Automatically sets `system.primaryUser` from config
-  - Configures Homebrew with the same user
-  - Supports machine-specific packages and brews
-
-- `mkHomeConfig`: Helper function for Linux home-manager configurations
-  - User-level package management
-  - No system-level daemon support
-
-## Advanced Configuration
-
-### Helper Function Parameters
-
-Both helper functions support `extraModules` for custom configurations without modifying the helper functions.
-
-#### `mkDarwinConfig` Parameters
-- `user`: Username for system.primaryUser and Homebrew
-- `autoMigrate`: Auto-migrate existing Homebrew installations (default: false)
-- `mutableTaps`: Allow mutable Homebrew taps (default: true)
-- `extraPackages`: Additional Nix packages to install
-- `extraBrews`: Additional Homebrew CLI packages
-- `extraModules`: Custom nix-darwin modules for advanced configuration
-
-#### `mkHomeConfig` Parameters
-- `system`: Target system architecture (e.g., "aarch64-linux")
-- `username`: User account name
-- `homeDirectory`: Full path to home directory
-- `extraPackages`: Additional Nix packages to install
-- `extraModules`: Custom home-manager modules for advanced configuration
-
-### Using `extraModules`
-
-Use `extraModules` to add custom configuration without modifying the helper functions.
-
-#### macOS Example (nix-darwin)
-```nix
-darwinConfigurations."my-machine" = mkDarwinConfig {
-  user = "myuser";
-  extraModules = [
-    ({ config, pkgs, ... }: {
-      # Custom system configuration
-      system.defaults.dock.autohide = true;
-
-      # Additional services
-      services.some-service.enable = true;
-    })
-  ];
-};
-```
-
-#### Linux Example (home-manager)
-```nix
-homeConfigurations."myuser@myhost" = mkHomeConfig {
-  system = "x86_64-linux";
-  username = "myuser";
-  homeDirectory = "/home/myuser";
-  extraModules = [
-    ({ config, pkgs, ... }: {
-      # Custom home-manager configuration
-      programs.git = {
-        enable = true;
-        userName = "My Name";
-        userEmail = "my@email.com";
-      };
-
-      # Custom environment variables
-      home.sessionVariables = {
-        EDITOR = "nvim";
-      };
-    })
-  ];
-};
-```
+**`postgresql@16` and `@18` are both declared.** `@16` is what has always been on
+PATH; `@18` was declared but never on it. Pick one deliberately rather than
+letting it drift further — `modules/home/darwin.nix` sets the PATH entry.

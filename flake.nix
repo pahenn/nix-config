@@ -37,20 +37,31 @@
     mk = import ./lib { inherit inputs self; };
   in
   {
+    # macOS — sudo darwin-rebuild switch --flake .#<name>
     darwinConfigurations = {
-      "pahenn-macbook" = mk.mkDarwin ./hosts/pahenn-macbook.nix;
-      "home-mini" = mk.mkDarwin ./hosts/home-mini.nix;
-    };
-
-    homeConfigurations = {
-      "ubuntu@ubuntu" = mk.mkHome {
-        system = "aarch64-linux";
-        hostModule = ./hosts/ubuntu.nix;
+      "pahenn-macbook" = mk.mkDarwin {
+        user = "pahenn";
+        hostModule = ./hosts/pahenn-macbook.nix;
       };
 
-      "patrick@patrick-homelab" = mk.mkHome {
+      "home-mini" = mk.mkDarwin {
+        user = "pahenn";
+        hostModule = ./hosts/home-mini.nix;
+      };
+    };
+
+    # Linux — home-manager switch --flake .#<name>
+    homeConfigurations = {
+      "pahenn@devbox" = mk.mkHome {
         system = "x86_64-linux";
-        hostModule = ./hosts/patrick-homelab.nix;
+        user = "pahenn";
+        hostModule = ./hosts/devbox.nix;
+      };
+
+      "pahenn@mfcdev" = mk.mkHome {
+        system = "x86_64-linux";
+        user = "pahenn";
+        hostModule = ./hosts/mfcdev.nix;
       };
     };
   };

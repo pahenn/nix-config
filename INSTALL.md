@@ -1,8 +1,6 @@
-# Installation Guide
+# Installation
 
-This guide covers installing Nix and the required tools for each platform.
-
-## macOS Installation
+## macOS
 
 ### 1. Install Lix
 
@@ -10,117 +8,92 @@ This guide covers installing Nix and the required tools for each platform.
 curl -sSf -L https://install.lix.systems/lix | sh -s -- install
 ```
 
-Or use the official installer:
-
-```bash
-sh <(curl -L https://nixos.org/nix/install)
-```
+Restart the shell, or `. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh`.
 
 ### 2. Clone this repository
 
 ```bash
-git clone <your-repo-url> ~/.config/nix
-cd ~/.config/nix
+git clone <repo-url> ~/nix-config
 ```
 
-### 3. Build and activate your configuration
+The path matters only for convenience — nothing in the flake depends on it any
+more. (It used to: `STARSHIP_CONFIG` pointed at `~/nix-config/home/starship/`.)
+
+### 3. First switch
+
+`darwin-rebuild` does not exist yet on a fresh machine, so bootstrap through
+`nix run`:
 
 ```bash
-# For MacBook Pro
-darwin-rebuild switch --flake .#pahenn-macbook-pro
-
-# For Mac Mini
-darwin-rebuild switch --flake .#mini
+sudo nix run nix-darwin -- switch --flake ~/nix-config#pahenn-macbook
 ```
 
-## Linux (Ubuntu) Installation
-
-### 1. Install Nix
+Afterwards:
 
 ```bash
-sh <(curl -L https://nixos.org/nix/install) --daemon
+sudo darwin-rebuild switch --flake ~/nix-config#pahenn-macbook   # or #home-mini
 ```
 
-### 2. Enable flakes
+### 4. Clean up what home-manager replaced
 
-**Important:** After installing Nix, you need to restart your shell or source the Nix profile before proceeding.
+The first switch renames `~/.zshrc` and `~/.zshenv` to `*.hm-bak`. One file is
+**not** handled automatically:
 
 ```bash
-# Restart your shell or run:
-. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+mv ~/.gitconfig ~/.gitconfig.pre-nix
 ```
 
-Then enable experimental features:
+home-manager writes `~/.config/git/config`, but git reads `~/.gitconfig` *after*
+it, so a leftover `~/.gitconfig` silently wins for any key it sets.
+
+`~/.zprofile` is deliberately left alone — it carries `brew shellenv` and the
+OrbStack init.
+
+## Linux (devbox, mfcdev)
+
+Debian 13 LXC containers on lab1, reached through the subnet router. Verified on
+devbox: user namespaces work, systemd is present, so the standard multi-user
+install is fine with the sandbox left on.
 
 ```bash
-mkdir -p ~/.config/nix
-echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf
+./bootstrap-linux.sh                                     # nix + flakes
+home-manager switch --flake ~/nix-config#pahenn@devbox   # or #pahenn@mfcdev
 ```
 
-**Verify it works:**
-
-```bash
-nix --version  # Should show Nix version
-```
-
-### 3. Clone this repository
-
-```bash
-git clone <your-repo-url> ~/nix-config
-cd ~/nix-config
-```
-
-### 4. Install home-manager and activate configuration
-
-```bash
-# Update flake inputs
-nix flake update
-
-# First-time activation (backs up existing config files)
-nix run home-manager/master -- switch --flake .#ubuntu@ubuntu -b backup
-```
-
-### 5. Install Tailscale (manual step)
-
-```bash
-sudo snap install tailscale
-sudo tailscale up
-```
+The bootstrap script does the first activation via `nix run`, since
+`home-manager` is not on PATH until it has run once.
 
 ## Updating
 
-### macOS
-
 ```bash
-cd ~/.config/nix
-git pull
-darwin-rebuild switch --flake .#<machine-name>
+cd ~/nix-config && git pull
+sudo darwin-rebuild switch --flake .#pahenn-macbook      # macOS
+home-manager switch --flake .#pahenn@devbox              # Linux
 ```
 
-### Linux
+To move the pinned inputs forward:
 
 ```bash
-cd ~/nix-config
-git pull
-home-manager switch --flake .#ubuntu@ubuntu
+nix flake update           # everything
+nix flake update nixpkgs   # one input
 ```
+
+Homebrew formulae are *not* upgraded by a switch any more. Take those
+deliberately with `brew update && brew upgrade`.
 
 ## Troubleshooting
 
-### macOS: "darwin-rebuild: command not found"
+**`darwin-rebuild: command not found`** — restart the terminal, or use the
+`nix run nix-darwin` form above.
 
-The installer should have added Nix to your PATH. Try:
+**An installer wants to append to `~/.zshrc`** — it cannot; the file is a
+read-only symlink into the store. Put the line in this flake, or in
+`~/.zshrc.local`, which is sourced at the end and stays writable.
 
-- Restart your terminal
-- Or manually source: `source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh`
+**A `switch` wants to uninstall something unexpected** — `cleanup = "uninstall"`
+is on, so anything not in `modules/darwin/homebrew.nix` is removed. Check first:
 
-### Linux: "nix: command not found"
-
-After installation, you may need to:
-
-- Restart your shell session
-- Or manually source: `. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh`
-
-### Flakes not enabled
-
-If you see errors about flakes being experimental, ensure you've added the experimental features configuration (see Linux step 2).
+```bash
+nix eval --raw .#darwinConfigurations.pahenn-macbook.config.homebrew.brewfile > /tmp/Brewfile
+brew bundle cleanup --file=/tmp/Brewfile     # dry run; add --force to apply
+```
