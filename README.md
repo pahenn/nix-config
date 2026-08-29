@@ -32,9 +32,13 @@ modules, so a host adds to them by setting them directly:
 | `pahenn@mfcdev` | CT 119 on lab1, `10.73.42.156` — dev box with an employer path |
 
 ```bash
-sudo darwin-rebuild switch --flake .#pahenn-macbook
-home-manager switch --flake .#pahenn@devbox
+sudo darwin-rebuild switch --flake .#pahenn-macbook   # macOS, run on the machine
+./tools/deploy-linux.sh devbox                        # Linux, run from the Mac
 ```
+
+The Linux boxes are deployed over ssh rather than from a checkout on the box:
+they hold no private keys by design, and this repo is public, so they fetch the
+flake by URL. That also means they deploy from `origin/main` — push first.
 
 All four machines evaluate to just two closures today, which is correct rather
 than a bug. The Macs are identical because the `tailscale` brew that used to be

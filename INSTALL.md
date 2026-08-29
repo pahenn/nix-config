@@ -51,17 +51,47 @@ OrbStack init.
 
 ## Linux (devbox, mfcdev)
 
-Debian 13 LXC containers on lab1, reached through the subnet router. Verified on
-devbox: user namespaces work, systemd is present, so the standard multi-user
-install is fine with the sandbox left on.
+One command, from the Mac. It installs Nix if absent, builds, activates and
+verifies:
 
 ```bash
-./bootstrap-linux.sh                                     # nix + flakes
-home-manager switch --flake ~/nix-config#pahenn@devbox   # or #pahenn@mfcdev
+./tools/deploy-linux.sh devbox
+./tools/deploy-linux.sh mfcdev
 ```
 
-The bootstrap script does the first activation via `nix run`, since
-`home-manager` is not on PATH until it has run once.
+It is idempotent — the same command is the first deploy and every update after.
+
+**The boxes hold no private keys**, by design, so they cannot clone from GitHub
+or Forgejo. This repo is public, so they fetch the flake by URL and need no
+credentials at all; nothing is cloned onto the box. The consequence is that
+**they deploy from `origin/main`, not from your working tree** — push first. The
+script warns if you have not.
+
+Verified on devbox: unprivileged user namespaces work in the LXC and systemd is
+present, so the standard multi-user install is fine with the sandbox left on.
+
+### Two traps this script exists to avoid
+
+**Do not wrap remote commands in `bash -lc`.** The SSH environment already
+exports `__ETC_PROFILE_NIX_SOURCED`, so a login shell re-runs `/etc/profile`,
+which *resets* `PATH`, and then `/etc/profile.d/nix.sh` returns early without
+re-adding Nix. The result is `nix: command not found` on a box where Nix is
+installed and working. Use `ssh host 'bash -s'` with an explicit `PATH`.
+
+**Build before activating.** Evaluation proves the module logic; only a build
+proves the packages resolve. The script builds first so a failure leaves the box
+untouched.
+
+### After the first deploy
+
+`~/.bashrc` and `~/.profile` are backed up to `*.hm-bak`. The hand-written tmux
+block is now generated from `modules/home/linux-dev.nix`, so the backup copy can
+be discarded once the login has been confirmed.
+
+home-manager's generated `.bashrc` keeps `[[ $- == *i* ]] || return` above the
+tmux block, so `ssh devbox 'some command'` still returns normally instead of
+execing into tmux. The deploy script asserts this — if that guard ever moved,
+every scripted SSH to these boxes would hang.
 
 ## Updating
 
