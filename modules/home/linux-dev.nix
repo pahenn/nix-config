@@ -23,6 +23,11 @@ in
   };
 
   config = {
+    # Debian's stock ~/.profile put this on PATH conditionally; home-manager's
+    # generated one does not, and losing it would make `pip install --user` and
+    # anything else that installs there silently unreachable.
+    home.sessionPath = [ "$HOME/.local/bin" ];
+
     home.packages = with pkgs; [
       ripgrep
       jq
