@@ -1,13 +1,12 @@
-# ~/.config/nix/flake.nix
-
 {
   description = "pahenn nix configuration";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
     nix-darwin = {
-        url = "github:LnL7/nix-darwin";
-        inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:LnL7/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
@@ -33,322 +32,26 @@
     };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nix-homebrew, homebrew-omlx, homebrew-coolify-cli, homebrew-egoist }:
+  outputs = inputs@{ self, ... }:
   let
-    # Helper function to create a home-manager configuration
-    mkHomeConfig = { system, username, homeDirectory, extraPackages ? [], extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
-      pkgs = nixpkgs.legacyPackages.${system};
-      modules = [
-        {
-          # Specify the Nix package
-          nix.package = nixpkgs.legacyPackages.${system}.nix;
-
-          # Enable experimental features
-          nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-          home.username = username;
-          home.homeDirectory = homeDirectory;
-          home.stateVersion = "25.05";
-
-          # Packages to install
-          home.packages = with nixpkgs.legacyPackages.${system}; [
-            neovim
-            zsh
-            cloudflared
-            nanorc
-
-            # fonts
-            nerd-fonts.fira-code
-            nerd-fonts.fira-mono
-            nerd-fonts.hack
-            nerd-fonts.jetbrains-mono
-          ] ++ extraPackages;
-
-          # Configure Zsh as default shell
-          programs.zsh = {
-            enable = true;
-            enableCompletion = true;
-            autosuggestion.enable = true;
-            syntaxHighlighting.enable = true;
-          };
-
-          # Configure Starship with custom config
-          programs.starship = {
-            enable = true;
-            enableZshIntegration = true;
-            enableBashIntegration = true;
-            settings = builtins.fromTOML (builtins.readFile ./home/starship/starship.toml);
-          };
-
-          # Enable font configuration
-          fonts.fontconfig.enable = true;
-
-          # Note: GNOME Terminal configuration disabled due to API changes
-          # You can configure terminal colors manually in GNOME Terminal preferences
-          # Recommended: FiraCode Nerd Font 11, Solarized Light theme
-
-          # Let home-manager manage itself
-          programs.home-manager.enable = true;
-        }
-      ] ++ extraModules; # Allow additional custom modules per-machine
-    };
-
-    # Helper function to create a Darwin configuration with a specific user
-    mkDarwinConfig = { 
-      user, 
-      autoMigrate ? false,
-      mutableTaps ? true,
-      extraPackages ? [],
-      extraBrews ? [],
-      extraCasks ? [],
-      extraModules ? [] 
-    }: nix-darwin.lib.darwinSystem {
-      modules = [
-        ({ config, pkgs, ... }: {
-          # Migrate to Lix
-          nixpkgs.overlays = [ (final: prev: {
-            inherit (prev.lixPackageSets.stable)
-              nixpkgs-review
-              nix-eval-jobs
-              nix-fast-build
-              colmena;
-          }) ];
-
-          nix.package = pkgs.lixPackageSets.stable.lix;
-
-
-          # Necessary for using flakes on this system.
-          nix.settings.experimental-features = "nix-command flakes";
-
-          system.configurationRevision = self.rev or self.dirtyRev or null;
-
-          # Used for backwards compatibility. please read the changelog
-          # before changing: `darwin-rebuild changelog`.
-          system.stateVersion = 6;
-
-          # Automatically set primary user from configuration
-          system.primaryUser = user;
-
-          # Allow user to run Homebrew without sudo password
-          security.sudo.extraConfig = ''
-            ${user} ALL=(ALL) NOPASSWD: /opt/homebrew/bin/brew
-          '';
-
-          # Create /etc/zshrc that loads the nix-darwin environment.
-          programs.zsh = {
-            enable = true;
-            # Disable the default prompt (which would override Starship)
-            promptInit = "";
-            interactiveShellInit = ''
-              # Initialize Starship prompt
-              eval "$(${pkgs.starship}/bin/starship init zsh)"
-
-              # Initialize nvm
-              export NVM_DIR="$HOME/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-              [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
-            '';
-          };
-
-          # Note: Git GPG signing is configured via ~/.gitconfig
-          # (set with: git config --global user.signingkey, commit.gpgsign, gpg.program)
-
-          environment.systemPackages = [
-            pkgs.utm
-            pkgs.neovim
-            pkgs.starship
-            pkgs.wireguard-tools
-            pkgs.cloudflared
-            pkgs.nanorc
-            pkgs.sshpass
-
-            # fonts
-            pkgs.nerd-fonts.fira-code
-            pkgs.nerd-fonts.fira-mono
-            pkgs.nerd-fonts.hack
-            pkgs.nerd-fonts.jetbrains-mono
-          ] ++ extraPackages;
-
-          # Point starship to config in this repo via environment variable
-          environment.variables.STARSHIP_CONFIG = "$HOME/nix-config/home/starship/starship.toml";
-
-          # Homebrew 6.x requires third-party taps to be explicitly trusted via
-          # `brew trust`, which writes to ~/.homebrew/trust.json (outside nix).
-          # Opt out system-wide instead. This must live in brew.env rather than
-          # environment.variables: nix-darwin runs `brew bundle` under
-          # `sudo --preserve-env=PATH`, which strips every other variable, but
-          # bin/brew sources this file itself on every invocation.
-          environment.etc."homebrew/brew.env".text = ''
-            HOMEBREW_NO_REQUIRE_TAP_TRUST=1
-          '';
-
-          # Ensure brew-installed node (pulled as a dependency) never shadows nvm
-          system.activationScripts.postActivation.text = ''
-            if /opt/homebrew/bin/brew ls --versions node &>/dev/null; then
-              /opt/homebrew/bin/brew unlink node 2>/dev/null || true
-            fi
-          '';
-
-          homebrew = {
-            enable = true;
-            global.autoUpdate = true;
-            onActivation = {
-              autoUpdate = true;
-              upgrade = true;
-              # cleanup = "uninstall"; # this go me into trouble. Oh well, there now
-              # cleanup = "zap"; # this is even worse than uninstall
-            };
-            brews = [
-              "qemu"
-              "tree"
-              "go"
-              "nano"
-              "nanorc"
-              "nvm"
-              "gh"
-              "nvtop"
-              "mactop"
-              "openjdk"
-              "postgresql@18"
-              "pnpm"
-              "yq"
-              "sqlcmd"
-              "uv"
-              "unixODBC"
-              "freetds"
-              "duckdb"
-              "minio-mc"
-              "rainfrog"
-              "duf"
-              "htop"
-              "git-filter-repo"
-              "awscli"
-              "coollabsio/coolify-cli/coolify-cli"
-              # "opencode" # opt for direct install -> curl -fsSL https://opencode.ai/install | bash
-              "ollama"
-              "llama.cpp"
-              "mlx"
-              "mlx-lm"
-              "omlx"
-              # other
-            ] ++ extraBrews;
-            casks = [
-              "brave-browser"
-              "ghostty"
-              "obsidian"
-              "raycast"
-              "orbstack"
-              "visual-studio-code"
-              "egoist/tap/kero"
-              "spotify"
-              "discord"
-              "itsycal"
-              "mos"
-              "gcloud-cli"
-              "tableplus"
-              "lunar"
-              "rectangle"
-              # ai
-              "lm-studio"
-              "jan"
-              # "claude-code" # moving this into native binary install direct from Anthropic -> curl -fsSL https://claude.ai/install.sh | bash
-              # needs password
-              "gpg-suite-no-mail"
-              "zoom"
-              # "logi-options+"
-              # fonts
-              "font-fira-code"
-              "font-fira-code-nerd-font"
-              "font-fira-mono-for-powerline"
-              "font-hack-nerd-font"
-              "font-jetbrains-mono-nerd-font"
-              "font-meslo-lg-nerd-font"
-              # office
-              "onlyoffice"
-              # "microsoft-office"
-              # "microsoft-teams"
-              # "cap"
-              # "tastytrade"
-              "tailscale-app"
-              # security
-              # "bitwarden" # need to use mac app to get browser integration
-              "macwhisper"
-              # "rustdesk" # errors on macbook pro
-              # aws
-              "session-manager-plugin"
-              "orcaslicer"
-            ] ++ extraCasks;
-          };
-
-          # The platform the configuration will be used on.
-          nixpkgs.hostPlatform = "aarch64-darwin";
-        })
-
-        # Homebrew configuration
-        nix-homebrew.darwinModules.nix-homebrew
-        {
-          nix-homebrew = {
-            enable = true;
-            user = user;
-            inherit autoMigrate mutableTaps;
-            taps = {
-              "jundot/homebrew-omlx" = homebrew-omlx;
-              "coollabsio/homebrew-coolify-cli" = homebrew-coolify-cli;
-              "egoist/homebrew-tap" = homebrew-egoist;
-            };
-          };
-        }
-      ] ++ extraModules; # Allow additional custom modules per-machine
-    };
+    mk = import ./lib { inherit inputs self; };
   in
   {
-    # macOS configurations
-    darwinConfigurations."pahenn-macbook" = mkDarwinConfig {
-      user = "pahenn";
-      # autoMigrate = true;
-      mutableTaps = true;
-      extraBrews = [
-        
-      ];
-      extraCasks = [
-        # "notion-calendar"
-        # "bambu-studio"
-      ];
+    darwinConfigurations = {
+      "pahenn-macbook" = mk.mkDarwin ./hosts/pahenn-macbook.nix;
+      "home-mini" = mk.mkDarwin ./hosts/home-mini.nix;
     };
 
-    darwinConfigurations."home-mini" = mkDarwinConfig {
-      user = "pahenn";
-      mutableTaps = true;
-      extraCasks = [
-      ];
-      extraBrews = [
-        "tailscale"
-      ];
-    };
+    homeConfigurations = {
+      "ubuntu@ubuntu" = mk.mkHome {
+        system = "aarch64-linux";
+        hostModule = ./hosts/ubuntu.nix;
+      };
 
-    # home-manager configurations (for aarch64 Linux systems)
-    homeConfigurations."ubuntu@ubuntu" = mkHomeConfig {
-      system = "aarch64-linux";
-      username = "ubuntu";
-      homeDirectory = "/home/ubuntu";
-      extraPackages = with nixpkgs.legacyPackages.aarch64-linux; [
-        # Add packages here
-        # Note: Tailscale must be installed via snap (see INSTALL.md):
-        # - sudo snap install tailscale
-        # - sudo tailscale up
-      ];
-    };
-    # home-manager configurations (for x86_64 Linux systems - Proxmox VM)
-    homeConfigurations."patrick@patrick-homelab" = mkHomeConfig {
-      system = "x86_64-linux";
-      username = "patrick";
-      homeDirectory = "/home/patrick";
-      extraPackages = with nixpkgs.legacyPackages.x86_64-linux; [
-        # Add packages here
-        # Note: Tailscale must be installed via snap (see INSTALL.md):
-        # - sudo snap install tailscale
-        # - sudo tailscale up
-      ];
+      "patrick@patrick-homelab" = mk.mkHome {
+        system = "x86_64-linux";
+        hostModule = ./hosts/patrick-homelab.nix;
+      };
     };
   };
 }
