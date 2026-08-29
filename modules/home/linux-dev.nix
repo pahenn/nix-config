@@ -12,6 +12,18 @@ in
 {
   imports = [ ./linux.nix ];
 
+  options.devBox.installClaudeCode = lib.mkOption {
+    type = lib.types.bool;
+    default = true;
+    description = ''
+      Install Claude Code from Anthropic's official installer on activation.
+
+      Deliberately imperative. nixpkgs lags the official releases, and on an
+      agent box a stale agent is worse than an unmanaged one — so this runs the
+      vendor installer rather than pinning a package.
+    '';
+  };
+
   options.devBox.tmuxCommand = lib.mkOption {
     type = lib.types.lines;
     default = "exec tmux new-session -A -s work";
@@ -47,6 +59,25 @@ in
       historyLimit = 50000;
       terminal = "screen-256color";
     };
+
+    # Claude Code, from the vendor installer rather than nixpkgs.
+    #
+    # This activation script MUST NOT be able to fail. home-manager runs
+    # activation under `set -eu` with `pipefail`, so a non-zero exit here aborts
+    # every later step — which is exactly how a failed Homebrew cask left the
+    # Mac half-configured on 2026-08-29. Hence the `|| echo` on the install and
+    # the check-then-skip rather than an unconditional run.
+    home.activation.claudeCode =
+      lib.mkIf cfg.installClaudeCode (lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        if [ -x "$HOME/.local/bin/claude" ]; then
+          echo "claude-code: present at ~/.local/bin/claude, leaving alone"
+        else
+          echo "claude-code: installing from https://claude.ai/install.sh"
+          $DRY_RUN_CMD ${pkgs.bash}/bin/bash -c \
+            '${pkgs.curl}/bin/curl -fsSL https://claude.ai/install.sh | bash' \
+            || echo "claude-code: install FAILED — continuing activation" >&2
+        fi
+      '');
 
     # Log in over SSH and land straight in the one long-lived session, so every
     # device joins the same shell. What it execs into is per-host — see
