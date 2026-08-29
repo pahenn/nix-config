@@ -20,20 +20,32 @@ if [ -z "$HOST" ]; then
 fi
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-FLAKE="github:pahenn/nix-config"
+FLAKE_REPO="github:pahenn/nix-config"
 CONFIG="pahenn@${HOST}"
 NIX=/nix/var/nix/profiles/default/bin/nix
 FLAGS="--extra-experimental-features nix-command --extra-experimental-features flakes"
 
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
-# The box pulls from GitHub, so anything unpushed will not be deployed.
+# Deploy an exact commit, never a branch name.
+#
+# `github:owner/repo` is mutable, and nix caches the resolved tarball for an hour
+# (tarball-ttl). A deploy that looks successful can therefore build a *previous*
+# revision: that happened here, and mfcdev silently kept an older generation
+# while the script reported success. A commit-pinned ref is immutable, so it is
+# never stale and every deploy is auditable.
+SHA="$(git -C "$REPO" rev-parse HEAD)"
+
 if [ -n "$(git -C "$REPO" status --porcelain)" ]; then
-  echo "warning: working tree is dirty — the box deploys from $FLAKE, not from disk" >&2
+  echo "warning: working tree is dirty — the box deploys $SHA from GitHub, not from disk" >&2
 fi
-if [ -n "$(git -C "$REPO" log origin/main..HEAD --oneline 2>/dev/null)" ]; then
-  echo "warning: local commits are not on origin/main — push before deploying" >&2
+if ! git -C "$REPO" branch -r --contains "$SHA" 2>/dev/null | grep -q 'origin/'; then
+  echo "error: $SHA is not on any origin branch. Push before deploying." >&2
+  exit 1
 fi
+
+FLAKE="${FLAKE_REPO}/${SHA}"
+echo "deploying $SHA"
 
 say "$HOST: checking reachability"
 ssh -o ConnectTimeout=8 -o BatchMode=yes "$HOST" 'echo "  reachable as $(whoami)"'
@@ -62,7 +74,17 @@ REMOTE
 # machine half-configured.
 say "$HOST: pre-flight build (box untouched if this fails)"
 GEN=$(ssh "$HOST" "$NIX $FLAGS build --no-link --print-out-paths '${FLAKE}#homeConfigurations.\"${CONFIG}\".activationPackage'")
-echo "  $GEN"
+echo "  built    $GEN"
+
+# Evaluate the same pinned ref locally and require the two to agree. The Mac
+# cannot *build* x86_64-linux, but it can evaluate it, and a mismatch means the
+# box resolved something other than what was asked for.
+EXPECTED=$(nix $FLAGS eval --raw "${FLAKE}#homeConfigurations.\"${CONFIG}\".activationPackage")
+if [ "$GEN" != "$EXPECTED" ]; then
+  echo "error: box built $GEN but this commit evaluates to $EXPECTED" >&2
+  exit 1
+fi
+echo "  matches  what $SHA evaluates to locally"
 
 # Activate the package just built, rather than `nix run home-manager/master`, so
 # activation uses the home-manager this flake pins instead of whatever is on
