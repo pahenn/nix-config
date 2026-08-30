@@ -24,6 +24,17 @@ in
     '';
   };
 
+  options.devBox.tmuxOnLogin = lib.mkOption {
+    type = lib.types.bool;
+    default = true;
+    description = ''
+      Exec into the shared tmux session on interactive SSH login.
+
+      Off inside the mfc-work container: that is entered with `docker exec` from
+      a tmux pane on the host, so a second tmux inside would nest for no reason.
+    '';
+  };
+
   options.devBox.tmuxCommand = lib.mkOption {
     type = lib.types.lines;
     default = "exec tmux new-session -A -s work";
@@ -103,7 +114,7 @@ in
     # tools/deploy-linux.sh asserts it on every deploy.
     programs.bash = {
       enable = true;
-      initExtra = ''
+      initExtra = lib.mkIf cfg.tmuxOnLogin ''
         if [ -z "$TMUX" ] && [ -n "$SSH_CONNECTION" ] && command -v tmux >/dev/null; then
         ${cfg.tmuxCommand}
         fi

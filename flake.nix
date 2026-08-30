@@ -63,6 +63,14 @@
         user = "pahenn";
         hostModule = ./hosts/mfcdev.nix;
       };
+
+      # The workspace container on mfcdev. Runs as root; see hosts/mfc-work.nix.
+      "root@mfc-work" = mk.mkHome {
+        system = "x86_64-linux";
+        user = "root";
+        homeDirectory = "/root";
+        hostModule = ./hosts/mfc-work.nix;
+      };
     };
   };
 }
