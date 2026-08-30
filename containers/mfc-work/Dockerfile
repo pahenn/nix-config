@@ -22,7 +22,12 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
 # Single-user Nix: there is no systemd in this container, so there is no daemon.
 # The build sandbox is off because Docker does not reliably grant the user
 # namespaces it needs — nothing is built here, it all comes from the cache.
-RUN curl -fsSL https://nixos.org/nix/install -o /tmp/nix-install.sh \
+# /nix is created here rather than by the installer: the installer shells out to
+# `sudo` to make it, and this image has no sudo. It also warns that installing as
+# root is unsupported — that warning is expected and harmless in a container,
+# where root is the only user and there is no daemon to run as anyone else.
+RUN mkdir -m 0755 /nix && chown root /nix \
+ && curl -fsSL https://nixos.org/nix/install -o /tmp/nix-install.sh \
  && sh /tmp/nix-install.sh --no-daemon --yes \
  && rm /tmp/nix-install.sh \
  && mkdir -p /etc/nix \
