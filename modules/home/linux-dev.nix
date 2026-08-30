@@ -45,6 +45,29 @@ in
     '';
   };
 
+  options.devBox.agentSocket = lib.mkOption {
+    type = lib.types.nullOr lib.types.str;
+    default = "$HOME/agent/agent.sock";
+    description = ''
+      Where the Mac's forwarded SSH agent socket lands on this box.
+
+      These boxes deliberately hold no private keys — see tools/deploy-linux.sh —
+      so git over SSH authenticates with the Vaultwarden agent on the Mac,
+      forwarded here by a RemoteForward in the Mac's ~/.ssh/config.
+
+      The path is fixed rather than the random /tmp one ForwardAgent would give,
+      because the long-lived tmux session outlives any single login: a pane
+      opened yesterday still holds yesterday's SSH_AUTH_SOCK, and only a stable
+      path makes that value still true after reconnecting. mfc-work needs it
+      stable for a second reason — the directory is bind-mounted into the
+      container, and a mount cannot chase a path that changes every login.
+
+      null on mfc-work: the socket arrives there through the bind mount at
+      /agent, and compose sets SSH_AUTH_SOCK, because `docker exec` reads the
+      container's env and never sources ~/.profile.
+    '';
+  };
+
   config = {
     # Debian's stock ~/.profile put this on PATH conditionally; home-manager's
     # generated one does not, and losing it would make `pip install --user` and
@@ -98,6 +121,44 @@ in
         fi
       '');
 
+    # SSH client configuration, managed here so a rebuilt box behaves the same.
+    #
+    # Two files on purpose. New hosts still append to ~/.ssh/known_hosts — the
+    # first file listed is the one ssh writes to — while the flake-pinned file
+    # stays read-only and keeps github.com and Forgejo verifiable on a box that
+    # was rebuilt an hour ago. Without it the first clone stops at a yes/no
+    # prompt, which a person answers and an agent hangs on forever.
+    #
+    # Keys taken from `ssh-keyscan`, cross-checked against the ssh_keys field of
+    # https://api.github.com/meta. Forgejo serves RSA only — it is Go's SSH
+    # server, not OpenSSH, and offers no ed25519 host key.
+    home.file = {
+      ".ssh/config".text = ''
+        # Managed by nix-config (modules/home/linux-dev.nix).
+        # Edits here are silently replaced on the next activation.
+        UserKnownHostsFile ~/.ssh/known_hosts ~/.ssh/known_hosts_flake
+      '';
+
+      ".ssh/known_hosts_flake".text = ''
+        github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+        github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+        github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+        [10.73.42.192]:2222 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDQnSSVJ1eC7xXKe1fslbjLl3rRptrBEnv7/VojESqtxoiBmohIPsApq0uk9PYbPlh9NCxEQW7DV96IK8GRUyuqXAF7FMYCsO1RZFAmIodCDBukIhlT13cSwXFhnpsJnpYGFGrdNki+AagRcTAa0T4ruwgiSZs+MQHmUo/tjCKPxIOAj2VBSr6M4wUalk3dQdPCYzH9AWVFdGZK3TixOBz+cEfhdrPJGTgc8q2ENskeSzkjrkpkWqont4SWHPNWUpwW7X6V4zeBalhG9pY4Y2XL/b8BbqPxSsNK78Tn7Bx54BLhGy8J9nJbsoLga+AXNgrnlOm70cr0TJrXXeqTFxxZGjHapUq/6HbF8ijS12JztedIFOqUCsoZks5ZQgLUujiTCi0c7xubQxrZNW5nchCE7j/JTD6fZR19NQn4mdanJGbhtwA7pLkMQ7yE9hIvo0QiUNaHhjDn2gUL4skugeqvRWgItVSRo3hVvxNwbZA/wnwUOuctXFztEOPU4EFdBMUSKR2N4yw2CKKiDwqVLq1wvFeLdriAH2UO0NJprb4p+HHmdjRIpcIGTwqdpw1G+22Fgeq5hOu7iTwg7lZ5KZG+xuFmpgSklDiR/zNmqcBTyvSwGeGeVCgfWLD2teP+a5QKt78XVq29iB4F2R4ToQ5++pliy4tC5h/TrStFHnxmIQ==
+      '';
+    } // lib.optionalAttrs (cfg.agentSocket != null) {
+      # sshd binds the forwarded socket here but will not create the directory,
+      # and a missing parent is a silent failure: the login succeeds, the
+      # forward does not, and the first clue is "Permission denied (publickey)".
+      "agent/.keep".text = "";
+    };
+
+    # Points at the socket above. Harmless when nothing is connected — ssh finds
+    # no agent and, since there are no keys on disk either, simply fails to
+    # authenticate rather than doing something surprising.
+    home.sessionVariables = lib.mkIf (cfg.agentSocket != null) {
+      SSH_AUTH_SOCK = cfg.agentSocket;
+    };
+
     # Log in over SSH and land straight in the one long-lived session, so every
     # device joins the same shell. What it execs into is per-host — see
     # devBox.tmuxCommand above.
@@ -114,7 +175,43 @@ in
     # tools/deploy-linux.sh asserts it on every deploy.
     programs.bash = {
       enable = true;
-      initExtra = lib.mkIf cfg.tmuxOnLogin ''
+      initExtra = ''
+        # Re-assert the flake's PATH entries on every interactive shell.
+        #
+        # home.sessionPath alone is not enough. A tmux pane is a *login* shell,
+        # so it re-runs /etc/profile, which resets PATH — and then both
+        # /etc/profile.d/nix.sh and hm-session-vars.sh return early, because
+        # their "already sourced" guards are exported variables the tmux server
+        # inherited from the first login. The pane comes up with the stock
+        # Debian PATH and not one flake-installed tool on it.
+        #
+        # That is not theoretical: on 2026-08-30 devbox's tmux pane, created
+        # before that day's deploy, had PATH=/usr/local/bin:/usr/bin:/bin:...
+        # and nothing else. Claude Code looked uninstalled while
+        # ~/.local/bin/claude was sitting right there, and rg, fd, jq and node
+        # were invisible the same way.
+        #
+        # .bashrc runs for every interactive shell and no guard gates it, so
+        # this is the one place the correction always lands. Listed
+        # lowest-priority first: each is prepended, so the last one ends up in
+        # front.
+        for __d in /nix/var/nix/profiles/default/bin "$HOME/.nix-profile/bin" "$HOME/.local/bin"; do
+          case ":$PATH:" in
+            *":$__d:"*) ;;
+            *) PATH="$__d:$PATH" ;;
+          esac
+        done
+        unset __d
+        export PATH
+      '' + lib.optionalString (cfg.agentSocket != null) ''
+
+        # Same reasoning, for the forwarded agent: a pane in a tmux server that
+        # predates this setting would otherwise have no SSH_AUTH_SOCK at all.
+        # `:=` only fills a blank, so a genuinely forwarded socket always wins.
+        : "''${SSH_AUTH_SOCK:=${cfg.agentSocket}}"
+        export SSH_AUTH_SOCK
+      '' + lib.optionalString cfg.tmuxOnLogin ''
+
         if [ -z "$TMUX" ] && [ -n "$SSH_CONNECTION" ] && command -v tmux >/dev/null; then
         ${cfg.tmuxCommand}
         fi
