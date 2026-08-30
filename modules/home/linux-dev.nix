@@ -8,6 +8,50 @@
 
 let
   cfg = config.devBox;
+
+  # Publish the connected client's forwarded agent at one stable path.
+  #
+  # Why a relay rather than `RemoteForward` straight to that path: the container
+  # on mfcdev bind-mounts the *directory*, so the socket has to physically live
+  # in it - a symlink to sshd's own /tmp socket is broken inside the container's
+  # mount namespace. And Blink on iOS cannot RemoteForward to a unix socket at
+  # all: its config parser types the value as <port>:<host>:<port> with UInt16
+  # ports and no path branch, and no streamlocal request exists in its SSH
+  # implementation. Plain ForwardAgent is the only thing both clients can do.
+  #
+  # It also fixes what RemoteForward got wrong. With a fixed bind path every
+  # connection unlinked the previous socket and removed it on exit, so a second
+  # live session was left holding a forward nothing could reach - which silently
+  # broke 19 repo clones on 2026-08-30. Here each session keeps its own socket
+  # and only the relay moves, so a disconnect can never destroy someone else's.
+  agentRelay = pkgs.writeShellScriptBin "agent-relay" ''
+    set -u
+    RELAY="$HOME/agent/agent.sock"
+    PIDFILE="''${XDG_RUNTIME_DIR:-/tmp}/agent-relay.$(id -u).pid"
+
+    # Nothing forwarded: leave whatever is already published alone, so a mosh
+    # session - which cannot forward an agent - keeps borrowing a live one.
+    [ -n "''${SSH_AUTH_SOCK:-}" ] || exit 0
+    # Already the relay (a nested login): relaying to ourselves would loop.
+    [ "$SSH_AUTH_SOCK" = "$RELAY" ] && exit 0
+
+    # Only publish an agent that actually answers. Exit 1 means reachable but
+    # holding no keys, which is still a working agent; 2 means cannot connect.
+    ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1
+    case $? in
+      0|1) ;;
+      *)   exit 0 ;;
+    esac
+
+    mkdir -p "$(dirname "$RELAY")"
+    # Newest login wins. That is a handover, not a theft: the path is left
+    # pointing at a live agent either way, which is the whole difference.
+    if [ -f "$PIDFILE" ]; then kill "$(cat "$PIDFILE")" 2>/dev/null || true; fi
+    ${pkgs.socat}/bin/socat \
+      UNIX-LISTEN:"$RELAY",fork,mode=600,unlink-early \
+      UNIX-CONNECT:"$SSH_AUTH_SOCK" >/dev/null 2>&1 &
+    echo $! > "$PIDFILE"
+  '';
 in
 {
   imports = [ ./linux.nix ];
@@ -74,7 +118,10 @@ in
     # anything else that installs there silently unreachable.
     home.sessionPath = [ "$HOME/.local/bin" ];
 
-    home.packages = with pkgs; [
+    home.packages = (lib.optionals (cfg.agentSocket != null) [
+      agentRelay
+      pkgs.socat
+    ]) ++ (with pkgs; [
       ripgrep
       jq
       fd
@@ -84,7 +131,7 @@ in
       nodejs_22
       python3
       gnumake
-    ];
+    ]);
 
     programs.tmux = {
       enable = true;
@@ -217,9 +264,17 @@ in
         export PATH
       '' + lib.optionalString (cfg.agentSocket != null) ''
 
-        # Same reasoning, for the forwarded agent: a pane in a tmux server that
-        # predates this setting would otherwise have no SSH_AUTH_SOCK at all.
-        # `:=` only fills a blank, so a genuinely forwarded socket always wins.
+        # Publish this login's forwarded agent at the stable path. Guarded to
+        # the login shell: .bashrc also runs in every tmux pane, and restarting
+        # the relay from each one would churn it for no reason.
+        if [ -z "$TMUX" ] && [ -n "$SSH_CONNECTION" ]; then
+          agent-relay
+        fi
+
+        # Then point at it. `:=` only fills a blank, so a session that forwarded
+        # its own agent keeps using that directly and never goes via the relay;
+        # this is what a pane older than the current login falls back to, and
+        # what a mosh session - which cannot forward at all - relies on.
         : "''${SSH_AUTH_SOCK:=${cfg.agentSocket}}"
         export SSH_AUTH_SOCK
       '' + lib.optionalString cfg.tmuxOnLogin ''
