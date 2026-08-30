@@ -35,11 +35,20 @@ let
     # Already the relay (a nested login): relaying to ourselves would loop.
     [ "$SSH_AUTH_SOCK" = "$RELAY" ] && exit 0
 
-    # Only publish an agent that actually answers. Exit 1 means reachable but
-    # holding no keys, which is still a working agent; 2 means cannot connect.
+    # "Alive" means the socket answers AND holds at least one key - exit 0.
+    #
+    # Not 0-or-1. `ssh-add -l` exits 1 both for a reachable agent holding no
+    # identities and for "communication with agent failed", which is exactly
+    # what a relay whose upstream has died returns: socat still accepts the
+    # connection, then finds nothing on the other side. Treating 1 as alive
+    # made the self-heal a no-op against the one failure it exists to repair,
+    # confirmed by test on 2026-08-30. Exit 2 is a missing socket file.
+    #
+    # A key-less agent is useless here anyway - there is nothing on these boxes
+    # to authenticate with - so demanding a key loses nothing and is the only
+    # check that distinguishes the states that matter.
     alive() {
       SSH_AUTH_SOCK="$1" ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1
-      case $? in 0|1) return 0 ;; *) return 1 ;; esac
     }
 
     alive "$SSH_AUTH_SOCK" || exit 0
