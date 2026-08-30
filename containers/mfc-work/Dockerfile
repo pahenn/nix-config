@@ -23,15 +23,21 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
 # The build sandbox is off because Docker does not reliably grant the user
 # namespaces it needs — nothing is built here, it all comes from the cache.
 # /nix is created here rather than by the installer: the installer shells out to
-# `sudo` to make it, and this image has no sudo. It also warns that installing as
-# root is unsupported — that warning is expected and harmless in a container,
-# where root is the only user and there is no daemon to run as anyone else.
+# `sudo` to make it, and this image has no sudo.
+#
+# nix.conf is written BEFORE the install, with build-users-group deliberately
+# empty. The installer otherwise leaves the multi-user default of `nixbld`, and
+# the very first build then fails with "the group 'nixbld' does not exist" —
+# there are no build users in a single-user container, so builds run as root.
+#
+# The installer's "installing Nix as root is not supported" warning is expected
+# and harmless here: root is the only user and there is no daemon.
 RUN mkdir -m 0755 /nix && chown root /nix \
+ && mkdir -p /etc/nix \
+ && printf 'experimental-features = nix-command flakes\nsandbox = false\nbuild-users-group =\n' > /etc/nix/nix.conf \
  && curl -fsSL https://nixos.org/nix/install -o /tmp/nix-install.sh \
  && sh /tmp/nix-install.sh --no-daemon --yes \
- && rm /tmp/nix-install.sh \
- && mkdir -p /etc/nix \
- && printf 'experimental-features = nix-command flakes\nsandbox = false\n' > /etc/nix/nix.conf
+ && rm /tmp/nix-install.sh
 
 # The installer puts the profile in /root, which a named volume masks at runtime.
 # Pin it somewhere the volume cannot hide so the entrypoint can always find nix.
