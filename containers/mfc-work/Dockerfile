@@ -64,6 +64,13 @@ RUN /opt/nix-profile/bin/nix \
  && test -s /etc/mfc-work-generation \
  && echo "baked generation: $(cat /etc/mfc-work-generation)"
 
+# `docker exec` uses the image's ENV, not anything the entrypoint exports — so
+# without this, `docker exec mfc-work bash` gets a PATH with none of the flake's
+# tools on it even though they are installed and working. Both profile paths live
+# in the /root volume and are created by activation at first start; a PATH entry
+# that does not exist yet is harmless.
+ENV PATH=/root/.nix-profile/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
