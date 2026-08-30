@@ -27,6 +27,17 @@
     # version is pinned by the flake like everything else.
     pkgs.postgresql_17
 
+    # tech-kit's bootstrap.sh prereqs. Declared here rather than installed with
+    # `npm install -g` or `nix profile install`, because **/nix is in the image
+    # layer, not a volume** - only /root, /work and /agent survive. Anything
+    # installed into the running container is silently gone at the next
+    # `docker compose up -d work`, which is a rebuild away at any time. On the
+    # hosts an ad-hoc `nix profile install` persists; in here it does not.
+    pkgs.pnpm
+    pkgs.uv
+    pkgs.gh          # /create-pr; still needs `gh auth login` in the container
+    pkgs.awscli2     # CodeCommit clones and AWS resources
+
     # The Debian base here carries no openssh-client: the image was cut back to
     # ca-certificates, curl, xz-utils, procps, iproute2 and dnsutils when the
     # toolchain moved into this flake, and ssh was never declared to replace it.

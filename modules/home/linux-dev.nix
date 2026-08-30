@@ -136,8 +136,20 @@ in
       ".ssh/config".text = ''
         # Managed by nix-config (modules/home/linux-dev.nix).
         # Edits here are silently replaced on the next activation.
+
+        # **This repository is public.** Anything host- or employer-specific -
+        # a CodeCommit SSH key id, an internal hostname - must not be written
+        # here. Drop it in ~/.ssh/config.d/ on the box instead, which is
+        # outside git for the same reason ~/.secrets.zsh is. First match wins
+        # in ssh_config, so the include goes at the top and local entries
+        # override anything below. A glob that matches nothing is not an error.
+        Include ~/.ssh/config.d/*.conf
+
         UserKnownHostsFile ~/.ssh/known_hosts ~/.ssh/known_hosts_flake
       '';
+
+      # The include above needs somewhere to point.
+      ".ssh/config.d/.keep".text = "";
 
       ".ssh/known_hosts_flake".text = ''
         github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
