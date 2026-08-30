@@ -47,10 +47,21 @@ RUN ln -s "$(readlink -f /root/.nix-profile)" /opt/nix-profile
 # network. Deploy a commit, never a branch — a mutable ref is cached for an hour
 # and will silently build a stale revision.
 ARG NIXCONFIG_REV=main
-RUN . /opt/nix-profile/etc/profile.d/nix.sh \
- && nix build --no-link --print-out-paths \
+# Call nix by absolute path rather than sourcing its profile script: that script
+# derives PATH from $HOME/.nix-profile, which does not resolve reliably during a
+# docker build, and the first attempt silently produced no output because of it.
+#
+# No pipe, and `test -s` afterwards. The first attempt piped through `tail -1`,
+# so the pipeline's exit status was tail's — nix failed, the file was written
+# empty, the build "succeeded", and the image shipped with nothing baked in.
+# An empty generation must fail the build, not become a broken container.
+RUN /opt/nix-profile/bin/nix \
+      --extra-experimental-features nix-command \
+      --extra-experimental-features flakes \
+      build --no-link --print-out-paths \
       "github:pahenn/nix-config/${NIXCONFIG_REV}#homeConfigurations.\"root@mfc-work\".activationPackage" \
-      | tail -1 > /etc/mfc-work-generation \
+      > /etc/mfc-work-generation \
+ && test -s /etc/mfc-work-generation \
  && echo "baked generation: $(cat /etc/mfc-work-generation)"
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
