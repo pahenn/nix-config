@@ -37,15 +37,26 @@ let
 
     # Only publish an agent that actually answers. Exit 1 means reachable but
     # holding no keys, which is still a working agent; 2 means cannot connect.
-    ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1
-    case $? in
-      0|1) ;;
-      *)   exit 0 ;;
-    esac
+    alive() {
+      SSH_AUTH_SOCK="$1" ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1
+      case $? in 0|1) return 0 ;; *) return 1 ;; esac
+    }
+
+    alive "$SSH_AUTH_SOCK" || exit 0
+
+    # If something live is already published, leave it alone. First client in
+    # owns the path; later ones use their own forwarded socket directly and
+    # never notice. Taking it over would gain nothing and churn the container.
+    #
+    # This is also the self-heal. When the owner disconnects its socat is left
+    # relaying to a dead upstream: the listen still accepts, then closes
+    # immediately, so `ssh-add -l` reports it as unreachable and the next
+    # interactive shell on the box republishes. That is why this runs from
+    # every interactive shell and not only at login - a stale relay is repaired
+    # by opening a pane rather than by knowing to reconnect.
+    if alive "$RELAY"; then exit 0; fi
 
     mkdir -p "$(dirname "$RELAY")"
-    # Newest login wins. That is a handover, not a theft: the path is left
-    # pointing at a live agent either way, which is the whole difference.
     if [ -f "$PIDFILE" ]; then kill "$(cat "$PIDFILE")" 2>/dev/null || true; fi
     ${pkgs.socat}/bin/socat \
       UNIX-LISTEN:"$RELAY",fork,mode=600,unlink-early \
@@ -264,12 +275,13 @@ in
         export PATH
       '' + lib.optionalString (cfg.agentSocket != null) ''
 
-        # Publish this login's forwarded agent at the stable path. Guarded to
-        # the login shell: .bashrc also runs in every tmux pane, and restarting
-        # the relay from each one would churn it for no reason.
-        if [ -z "$TMUX" ] && [ -n "$SSH_CONNECTION" ]; then
-          agent-relay
-        fi
+        # Publish this session's forwarded agent at the stable path, if nothing
+        # live is published there already. Deliberately not restricted to the
+        # login shell: a relay whose owner disconnected is repaired by whoever
+        # next opens a pane, which is the only repair path that does not require
+        # noticing the problem first. It is a no-op - one socket probe - when
+        # the relay is healthy.
+        agent-relay
 
         # Then point at it. `:=` only fills a blank, so a session that forwarded
         # its own agent keeps using that directly and never goes via the relay;
