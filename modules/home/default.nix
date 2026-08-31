@@ -6,6 +6,7 @@
     ./starship.nix
     ./git.nix
     ./ssh.nix
+    ./claude-code.nix
   ];
 
   home.stateVersion = "25.05";
