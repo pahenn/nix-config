@@ -61,6 +61,14 @@
   programs.git.settings.credential."https://git-codecommit.us-east-1.amazonaws.com".helper =
     "store --file=/root/.codecommit-credentials";
 
+  # tech-kit's repos.json gives CodeCommit repos as ssh:// URLs, so git would
+  # never reach the helper above — it would try SSH, offer the ed25519 vault key
+  # and be refused, which is where this started. Rewriting the prefix means
+  # clone-repos.sh works unmodified and existing remotes are redirected too,
+  # rather than every URL having to be edited in two places and kept in step.
+  programs.git.settings.url."https://git-codecommit.us-east-1.amazonaws.com/".insteadOf =
+    "ssh://git-codecommit.us-east-1.amazonaws.com/";
+
   home.packages = [
     # The reason this container exists: the targets are RDS instances, and psql
     # needs the exit node's route. Replaces Debian's postgresql-client so the
