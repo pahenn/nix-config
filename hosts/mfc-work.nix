@@ -40,6 +40,27 @@
   # this covers every repo under the mount and nothing outside it.
   programs.git.settings.safe.directory = "/work/*";
 
+  # CodeCommit over HTTPS, because the SSH route cannot work from here.
+  #
+  # 12 of the 19 repos in tech-kit's repos.json are on CodeCommit and only 7 on
+  # GitHub — which is exactly why 12 of the workspace folders were missing. IAM
+  # will not accept an ed25519 key, so the forwarded vault key is refused, and
+  # importing an RSA key into the vault does not help either: Bitwarden's agent
+  # lists RSA keys and cannot sign with them. Both agent routes are closed
+  # upstream. See mfcdev.md.
+  #
+  # So this is AWS's own recommendation, and it is a real trade: a static
+  # credential at rest in the container, which is the thing this estate has
+  # otherwise spent effort eliminating. Contained three ways — scoped to the one
+  # host rather than a global helper, kept in the root-only /root volume rather
+  # than the /work bind mount where the Mac could read it, and an IAM
+  # service-specific credential that grants CodeCommit and nothing else.
+  #
+  # Not in mfc.env: that file is passed to the *vpn* container and carries the
+  # Headscale auth key, which the workspace has no reason to see.
+  programs.git.settings.credential."https://git-codecommit.us-east-1.amazonaws.com".helper =
+    "store --file=/root/.codecommit-credentials";
+
   home.packages = [
     # The reason this container exists: the targets are RDS instances, and psql
     # needs the exit node's route. Replaces Debian's postgresql-client so the
