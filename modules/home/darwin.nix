@@ -1,11 +1,41 @@
 # Mac-only user environment. This is what used to be the unmanaged 162-line
 # ~/.zshrc.
 #
-# Note ~/.zprofile is deliberately NOT managed here: it carries
-# `brew shellenv` and the OrbStack init, and having home-manager generate it
-# risked losing the Homebrew PATH entirely.
-{ config, ... }:
+# ~/.zprofile IS generated here, contrary to what this comment said until
+# 2026-08-30. Nothing was lost by that: `brew shellenv` moved to nix-darwin's
+# /etc/zshrc, which runs for every shell. The OrbStack init did go -- its
+# binaries are all still on PATH via /usr/local/bin and /opt/homebrew/bin, so
+# only the zsh completions for docker, kubectl, orb and orbctl went with it.
+{ config, pkgs, ... }:
+let
+  # Where the Vaultwarden desktop app serves the vault SSH keys.
+  bitwardenAgent =
+    "${config.home.homeDirectory}/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock";
+
+  # git signs by shelling out to `ssh-keygen -Y sign`, and ssh-keygen resolves
+  # its agent from SSH_AUTH_SOCK. It does NOT read ~/.ssh/config, so the
+  # `IdentityAgent` line pointing ssh at the vault agent is invisible to it.
+  # On the Mac that means the signing key is reachable by ssh and not by
+  # ssh-keygen, and every commit fails with "No private key found for public
+  # key" while `ssh` and `git push` keep working -- see git-signing.md.
+  #
+  # Exporting SSH_AUTH_SOCK in the shell also fixes it and is the wrong fix: it
+  # takes launchd's agent out of the picture for everything else, which is
+  # exactly the tradeoff vaultwarden-ssh-agent.md rejected when it chose
+  # ssh_config over an export. gpg.ssh.program confines the override to signing.
+  #
+  # The dev boxes need none of this. Their agent is forwarded onto SSH_AUTH_SOCK
+  # already, which is why signing worked there and this stayed hidden.
+  gitSigner = pkgs.writeShellScriptBin "ssh-keygen-vault-agent" ''
+    if [ -S "${bitwardenAgent}" ]; then
+      export SSH_AUTH_SOCK="${bitwardenAgent}"
+    fi
+    exec ${pkgs.openssh}/bin/ssh-keygen "$@"
+  '';
+in
 {
+  programs.git.settings.gpg.ssh.program = "${gitSigner}/bin/ssh-keygen-vault-agent";
+
   home.sessionPath = [
     "${config.home.homeDirectory}/Library/pnpm"
     "/opt/homebrew/opt/openjdk/bin"
