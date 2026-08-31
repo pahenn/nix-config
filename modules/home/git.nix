@@ -12,6 +12,11 @@ let
   # and commit signing at once. The comment is cosmetic everywhere it lands;
   # ssh-keygen matches on key material, never on name.
   #
+  # authorized_keys on devbox, mfcdev, lab1 and home-mini was updated to match on
+  # the same day, so no host still advertises the old name. Two different stale
+  # names were found there - `m4 macbook` and `devbox - macbook` - both artefacts
+  # of the per-device naming the setup guide used to recommend.
+  #
   # PUBLIC half only, which is the whole point: git's ssh signing goes through
   # the ordinary agent protocol, so the signature is produced inside the agent
   # on the Mac and no box needs the secret. That is what makes signing work on
