@@ -64,11 +64,15 @@
         hostModule = ./hosts/mfcdev.nix;
       };
 
-      # The workspace container on mfcdev. Runs as root; see hosts/mfc-work.nix.
-      "root@mfc-work" = mk.mkHome {
+      # The workspace container on mfcdev. Runs as uid 1000, matching pahenn on
+      # the host: /work is a bind mount of /home/pahenn/mfc, and a container
+      # running as root creates files there that the VS Code server - which runs
+      # as that user - can read and not write. Ownership is the euid of whoever
+      # creates the file, so the only fix at the source is being the same user.
+      "pahenn@mfc-work" = mk.mkHome {
         system = "x86_64-linux";
-        user = "root";
-        homeDirectory = "/root";
+        user = "pahenn";
+        homeDirectory = "/home/pahenn";
         hostModule = ./hosts/mfc-work.nix;
       };
     };
