@@ -4,6 +4,14 @@ let
   # The Vaultwarden agent key. It already authenticates to GitHub, Forgejo, the
   # dev boxes and lab1; from 2026-08-30 it signs commits as well.
   #
+  # Renamed 2026-08-31 from "m4 macbook", which described where it was generated
+  # rather than what it is. Every Mac that unlocks the vault borrows this one key
+  # - home-mini reached mfcdev with nothing added to any authorized_keys - so the
+  # old name implied a per-device scheme that does not exist. "(shared)" is the
+  # standing warning: revoking it cuts every Mac, both dev boxes, the container
+  # and commit signing at once. The comment is cosmetic everywhere it lands;
+  # ssh-keygen matches on key material, never on name.
+  #
   # PUBLIC half only, which is the whole point: git's ssh signing goes through
   # the ordinary agent protocol, so the signature is produced inside the agent
   # on the Mac and no box needs the secret. That is what makes signing work on
@@ -14,7 +22,7 @@ let
   # gpg-agent was the obvious fix and the wrong one: it needs RemoteForward to a
   # fixed socket path, the design already rejected for the ssh agent because it
   # cannot survive two clients and Blink cannot forward to a unix socket at all.
-  signingKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHPbwozOF6xtJi6w1ralUkoSXPRIPxM2WSn7G1euqN/S m4 macbook";
+  signingKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHPbwozOF6xtJi6w1ralUkoSXPRIPxM2WSn7G1euqN/S pahenn vault key (shared)";
   email = "7787945+pahenn@users.noreply.github.com";
   gitDir = "${config.home.homeDirectory}/.config/git";
 in
