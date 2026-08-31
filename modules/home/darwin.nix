@@ -82,6 +82,25 @@ in
       Include ~/.orbstack/ssh/config
     '')
 
+    # The other Mac. Here rather than in ssh.nix because a workstation is not
+    # lab: the dev boxes have no reason to reach a laptop, the tailnet ACL does
+    # not grant tagged devices a path to a user device anyway, and writing a
+    # block that cannot work is how config stops being trustworthy. Move it to
+    # ssh.nix the day a dev box genuinely needs it.
+    #
+    # Addressed by its tailnet IP, not a LAN one: the two Macs are not reliably
+    # on the same network, which is the whole reason this entry is useful.
+    #
+    # INERT UNTIL Remote Login is enabled on that machine - macOS ships it off,
+    # and port 22 was refused as of 2026-08-31. Nothing here can turn it on;
+    # it is System Settings > General > Sharing.
+    (lib.mkOrder 400 ''
+
+      Host home-mini
+          HostName 100.64.0.7
+          User pahenn
+    '')
+
     # Last, because ssh_config is first-match-wins and `Host *` matches
     # everything: any specific block above must get to set its own options
     # first. This is the only place the vault agent is named for ssh itself -
