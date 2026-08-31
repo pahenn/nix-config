@@ -21,6 +21,25 @@
   # variable home-manager writes for the hosts would not be seen here anyway.
   devBox.agentSocket = null;
 
+  # /work is a bind mount of /home/pahenn/mfc, owned by pahenn (1000). This
+  # container runs as root, and git refuses a repository owned by another user
+  # — root included, it is not exempt.
+  #
+  # The files are owned by the human on purpose: the VS Code server on mfcdev
+  # runs as pahenn, and without that it can read the repos but not write to
+  # them, so the editor silently cannot save. Ownership follows the person who
+  # edits; the root container is told to trust it, not the other way round.
+  #
+  # Declared rather than clicked. VS Code's "allow" button runs
+  # `git config --global --add safe.directory`, which writes to
+  # ~/.config/git/config — a read-only store symlink on every machine here, so
+  # that button can only ever fail. Anything of this shape has to come from the
+  # flake.
+  #
+  # Scoped to /work, not `*`. Git 2.55 treats a trailing /* as recursive, so
+  # this covers every repo under the mount and nothing outside it.
+  programs.git.settings.safe.directory = "/work/*";
+
   home.packages = [
     # The reason this container exists: the targets are RDS instances, and psql
     # needs the exit node's route. Replaces Debian's postgresql-client so the
