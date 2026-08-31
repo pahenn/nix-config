@@ -27,16 +27,19 @@
     # version is pinned by the flake like everything else.
     pkgs.postgresql_17
 
-    # tech-kit's bootstrap.sh prereqs. Declared here rather than installed with
-    # `npm install -g` or `nix profile install`, because **/nix is in the image
+    # tech-kit's bootstrap wants this for CodeCommit clones and S3. It stays
+    # here rather than in the shared module on purpose: devbox is deliberately
+    # the box with no path to employer infrastructure, and AWS tooling there
+    # invites exactly the drift that separation exists to prevent. pnpm, uv and
+    # gh were also declared here at first and have since moved to the shared
+    # list - nothing about them is employer-specific.
+    #
+    # Declared rather than installed by hand because **/nix is in the image
     # layer, not a volume** - only /root, /work and /agent survive. Anything
-    # installed into the running container is silently gone at the next
-    # `docker compose up -d work`, which is a rebuild away at any time. On the
-    # hosts an ad-hoc `nix profile install` persists; in here it does not.
-    pkgs.pnpm
-    pkgs.uv
-    pkgs.gh          # /create-pr; still needs `gh auth login` in the container
-    pkgs.awscli2     # CodeCommit clones and AWS resources
+    # installed into the running container is gone at the next
+    # `docker compose up -d work`. On the hosts an ad-hoc `nix profile install`
+    # persists; in here it does not.
+    pkgs.awscli2
 
     # The Debian base here carries no openssh-client: the image was cut back to
     # ca-certificates, curl, xz-utils, procps, iproute2 and dnsutils when the

@@ -151,6 +151,15 @@ in
       nodejs_22
       python3
       gnumake
+
+      # Added to the shared list 2026-08-30. These arrived for tech-kit's
+      # bootstrap and were declared in hosts/mfc-work.nix, so they landed in the
+      # container and nowhere else - `gh` missing on devbox is what surfaced it.
+      # Nothing about them is employer-specific, and these boxes are supposed to
+      # be the same box twice, so the narrow scoping was the mistake.
+      pnpm
+      uv
+      gh
     ]);
 
     programs.tmux = {
