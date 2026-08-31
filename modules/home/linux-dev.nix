@@ -188,27 +188,34 @@ in
     # One minute is affordable because the healthy path is a single connect to
     # ~/agent/agent.sock - the relay check now comes first in the script for
     # exactly this reason.
-    systemd.user.services.agent-relay = {
-      Unit.Description = "Republish a live forwarded ssh agent at the stable path";
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${agentRelay}/bin/agent-relay";
-        # socat is started as a background child and must outlive the unit.
-        # The default control-group kill would take it down the instant the
-        # oneshot exits, so the relay would be reaped a second after it is
-        # published - and the next tick would rebuild it, forever.
-        KillMode = "process";
+    # Gated exactly like the relay itself. The mfc-work container sets
+    # agentSocket = null: it has no forwarded agent of its own and no sshd
+    # sessions to scan for one, it borrows the host's relay through a bind
+    # mount of the directory - and it has no systemd at all, PID 1 being
+    # docker-init. Writing user units into it would be inert at best.
+    systemd.user = lib.mkIf (cfg.agentSocket != null) {
+      services.agent-relay = {
+        Unit.Description = "Republish a live forwarded ssh agent at the stable path";
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${agentRelay}/bin/agent-relay";
+          # socat is started as a background child and must outlive the unit.
+          # The default control-group kill would take it down the instant the
+          # oneshot exits, so the relay would be reaped a second after it is
+          # published - and the next tick would rebuild it, forever.
+          KillMode = "process";
+        };
       };
-    };
 
-    systemd.user.timers.agent-relay = {
-      Unit.Description = "Check the ssh agent relay every minute";
-      Timer = {
-        OnStartupSec = "30s";
-        OnUnitActiveSec = "1min";
-        AccuracySec = "10s";
+      timers.agent-relay = {
+        Unit.Description = "Check the ssh agent relay every minute";
+        Timer = {
+          OnStartupSec = "30s";
+          OnUnitActiveSec = "1min";
+          AccuracySec = "10s";
+        };
+        Install.WantedBy = [ "timers.target" ];
       };
-      Install.WantedBy = [ "timers.target" ];
     };
 
     # Debian's stock ~/.profile put this on PATH conditionally; home-manager's
