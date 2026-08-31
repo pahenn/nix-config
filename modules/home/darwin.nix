@@ -45,7 +45,30 @@ in
   # One-time setup per machine, both stateful and so not declarable here:
   #   bw config server https://vaultwarden.pahenn.xyz
   #   bw login
-  home.packages = [ pkgs.bitwarden-cli ];
+  #
+  # rbw is the one to reach for interactively. `bw` has no vault-timeout concept
+  # at all - no resident process, so every shell needs its own session key from
+  # `bw unlock --raw`, and the only way to make that persist is to leave a vault
+  # decryption key on disk. That would negate the property ssh.nix depends on:
+  # locking the vault disables the SSH keys. rbw instead runs an agent holding
+  # the key in memory with a lock_timeout, which is the same model as ssh-agent
+  # and as the desktop app. It is third-party, which is the reason to keep the
+  # official client alongside it rather than replacing it.
+  #
+  # pinentry-mac is not optional: rbw-agent has no way to ask for the master
+  # password without it.
+  #
+  #   rbw config set base_url https://vaultwarden.pahenn.xyz
+  #   rbw config set email patrick@pahenn.dev
+  #   rbw config set pinentry pinentry-mac
+  #   rbw config set lock_timeout 28800
+  #   rbw login
+  #
+  # Not declared as ~/.config/rbw/config.json on purpose, yet: rbw writes to
+  # that file itself and it is not yet established whether login stores a device
+  # id there, which a read-only store symlink would break. Worth revisiting once
+  # that is known - it is otherwise exactly the kind of file that belongs here.
+  home.packages = [ pkgs.bitwarden-cli pkgs.rbw pkgs.pinentry_mac ];
 
   # The Mac-only half of ~/.ssh/config. The shared lab hosts are in ssh.nix.
   home.file.".ssh/config".text = lib.mkMerge [
