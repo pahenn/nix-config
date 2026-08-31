@@ -36,6 +36,17 @@ in
 {
   programs.git.settings.gpg.ssh.program = "${gitSigner}/bin/ssh-keygen-vault-agent";
 
+  # Vaultwarden from the shell. Mac only, deliberately: a `bw` session is a
+  # credential, and the whole point of the dev boxes is that they hold none -
+  # see secrets.md. The vault is already the index of record for the estate, so
+  # having it reachable without the GUI is what makes things like the
+  # ~/.ssh/config.d/private.conf note verifiable rather than merely stored.
+  #
+  # One-time setup per machine, both stateful and so not declarable here:
+  #   bw config server https://vaultwarden.pahenn.xyz
+  #   bw login
+  home.packages = [ pkgs.bitwarden-cli ];
+
   # The Mac-only half of ~/.ssh/config. The shared lab hosts are in ssh.nix.
   home.file.".ssh/config".text = lib.mkMerge [
     # OrbStack writes this line into ~/.ssh/config itself when it installs or
