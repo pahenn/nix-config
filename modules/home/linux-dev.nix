@@ -84,6 +84,11 @@ let
       return 1
     }
 
+    # Something live is already published: nothing to do, whoever owns it owns
+    # it. Checked first because it is the common case and it is one probe -
+    # which is what makes the timer below free to run every minute.
+    if alive "$RELAY"; then exit 0; fi
+
     # This session's own agent first - it is the one certain to be live and to
     # belong to whoever is asking. Never the relay itself: that would loop.
     UPSTREAM="''${SSH_AUTH_SOCK:-}"
@@ -95,18 +100,6 @@ let
     # session, which cannot forward at all, keeps borrowing a live relay.
     [ -n "$UPSTREAM" ] || exit 0
 
-    # If something live is already published, leave it alone. First client in
-    # owns the path; later ones use their own forwarded socket directly and
-    # never notice. Taking it over would gain nothing and churn the container.
-    #
-    # This is also the self-heal. When the owner disconnects its socat is left
-    # relaying to a dead upstream: the listen still accepts, then closes
-    # immediately, so `ssh-add -l` reports it as unreachable and the next
-    # interactive shell on the box republishes. That is why this runs from
-    # every interactive shell and not only at login - a stale relay is repaired
-    # by opening a pane rather than by knowing to reconnect.
-    if alive "$RELAY"; then exit 0; fi
-
     mkdir -p "$(dirname "$RELAY")"
     if [ -f "$PIDFILE" ]; then kill "$(cat "$PIDFILE")" 2>/dev/null || true; fi
     ${pkgs.socat}/bin/socat \
@@ -117,6 +110,7 @@ let
 in
 {
   imports = [ ./linux.nix ];
+
 
   options.devBox.installClaudeCode = lib.mkOption {
     type = lib.types.bool;
@@ -175,6 +169,48 @@ in
   };
 
   config = {
+    # Run the repair on a timer, because nothing else will.
+    #
+    # agent-relay can now find an agent on its own, but it still has to be
+    # *invoked*, and until this it only ever ran from .bashrc. A non-interactive
+    # consumer - a coding agent's shell, a cron job, the mfc-work container -
+    # cannot trigger the repair it is the victim of. On 2026-08-30 both boxes sat
+    # broken for hours with a live agent on each of them.
+    #
+    # A timer and NOT the systemd.user.path unit devbox.md originally proposed.
+    # The fault is the relay's upstream dying, which produces no filesystem event
+    # at all: socat stays alive and ~/agent/agent.sock is untouched, so a
+    # PathChanged unit on that directory would never fire for the one failure it
+    # would exist for. PathExistsGlob on /tmp/ssh-*/agent.* is level-triggered
+    # and is true continuously while any session exists, so it fires once and
+    # then never again. Polling is the honest mechanism here.
+    #
+    # One minute is affordable because the healthy path is a single connect to
+    # ~/agent/agent.sock - the relay check now comes first in the script for
+    # exactly this reason.
+    systemd.user.services.agent-relay = {
+      Unit.Description = "Republish a live forwarded ssh agent at the stable path";
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${agentRelay}/bin/agent-relay";
+        # socat is started as a background child and must outlive the unit.
+        # The default control-group kill would take it down the instant the
+        # oneshot exits, so the relay would be reaped a second after it is
+        # published - and the next tick would rebuild it, forever.
+        KillMode = "process";
+      };
+    };
+
+    systemd.user.timers.agent-relay = {
+      Unit.Description = "Check the ssh agent relay every minute";
+      Timer = {
+        OnStartupSec = "30s";
+        OnUnitActiveSec = "1min";
+        AccuracySec = "10s";
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
+
     # Debian's stock ~/.profile put this on PATH conditionally; home-manager's
     # generated one does not, and losing it would make `pip install --user` and
     # anything else that installs there silently unreachable.
