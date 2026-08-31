@@ -9,18 +9,30 @@
 {
   imports = [ ../modules/home/linux-dev.nix ];
 
-  # Land inside the workspace container, because that is where the employer exit
-  # node applies — the host's own routing is deliberately untouched. Ctrl-b c
-  # opens a window on the HOST for mfc-on / mfc-off / mfc-status.
+  # The `work` session is a plain HOST shell, and `dev` steps into the container.
   #
-  # If the container is down, fall back to a host shell rather than failing the
-  # login. Getting locked out of a box because a container is not running would
-  # be a poor trade for saving a keystroke.
-  devBox.tmuxCommand = ''
-    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx mfc-work; then
-      exec tmux new-session -A -s work 'docker exec -it mfc-work bash'
-    else
-      exec tmux new-session -A -s work
-    fi
+  # It used to exec straight into `docker exec -it mfc-work bash`, which made the
+  # session's only process the container's. That tied the tmux session's life to
+  # the container's: every rebuild killed it, taking whatever was running inside
+  # with it — including a Claude Code session, more than once on 2026-08-31. From
+  # the phone it looked like tmux was broken rather than absent.
+  #
+  # A host shell survives all of that. You reconnect to the same session and type
+  # `dev` again, which is one keystroke against a session that outlives the thing
+  # it is used to reach.
+  programs.bash.initExtra = ''
+    # Enter the workspace container — where the employer exit node applies.
+    # `docker start` first, so a merely stopped container needs no thought; a
+    # container that has been removed needs compose, and says so rather than
+    # failing with docker's own less obvious message.
+    dev() {
+      docker start mfc-work >/dev/null 2>&1
+      if ! docker ps --format '{{.Names}}' | grep -qx mfc-work; then
+        echo "mfc-work is not running. Recreate it with:" >&2
+        echo "  cd /opt/mfc-vpn && sudo docker compose up -d work" >&2
+        return 1
+      fi
+      docker exec -it mfc-work bash
+    }
   '';
 }
