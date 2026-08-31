@@ -29,12 +29,6 @@ let
     RELAY="$HOME/agent/agent.sock"
     PIDFILE="''${XDG_RUNTIME_DIR:-/tmp}/agent-relay.$(id -u).pid"
 
-    # Nothing forwarded: leave whatever is already published alone, so a mosh
-    # session - which cannot forward an agent - keeps borrowing a live one.
-    [ -n "''${SSH_AUTH_SOCK:-}" ] || exit 0
-    # Already the relay (a nested login): relaying to ourselves would loop.
-    [ "$SSH_AUTH_SOCK" = "$RELAY" ] && exit 0
-
     # "Alive" means the socket answers AND holds at least one key - exit 0.
     #
     # Not 0-or-1. `ssh-add -l` exits 1 both for a reachable agent holding no
@@ -51,7 +45,55 @@ let
       SSH_AUTH_SOCK="$1" ${pkgs.openssh}/bin/ssh-add -l >/dev/null 2>&1
     }
 
-    alive "$SSH_AUTH_SOCK" || exit 0
+    # Find any forwarded agent on this box that answers, newest first, and
+    # prefer one whose session has a tty.
+    #
+    # This exists because trusting $SSH_AUTH_SOCK made the self-heal
+    # unreachable in the one case it was written for. On 2026-08-30 both dev
+    # boxes sat with a dead relay while a live forwarded agent holding the key
+    # was on the same box the whole time. Opening a shell did not fix it: that
+    # login had no SSH_AUTH_SOCK of its own, so the first guard returned before
+    # the repair, and the fallback below then pointed that very shell at the
+    # corpse. The session that arrived able to fix it became another victim.
+    #
+    # @pts before @notty because a one-shot `ssh host cmd` exits in seconds and
+    # relaying to it replaces a stale relay with a stale relay - the failure
+    # this file's own header warns about. A tty means a person is sitting
+    # there, which is the best proxy available for "will still exist shortly".
+    # /proc/PID/cmdline reads `sshd-session: user@pts/3` or `user@notty`, so
+    # this needs nothing installed.
+    scan() {
+      local pass s pid args
+      for pass in tty any; do
+        for s in $(ls -t /tmp/ssh-*/agent.* 2>/dev/null); do
+          [ -S "$s" ] || continue
+          [ "$s" = "$RELAY" ] && continue
+          pid="''${s##*/agent.}"
+          case "$pid" in ""|*[!0-9]*) continue ;; esac
+          # owning session gone: its socket is a corpse like the one we replace
+          kill -0 "$pid" 2>/dev/null || continue
+          args="$(tr "\0" " " < "/proc/$pid/cmdline" 2>/dev/null)"
+          if [ "$pass" = tty ]; then
+            case "$args" in *@pts*) ;; *) continue ;; esac
+          fi
+          alive "$s" || continue
+          printf "%s" "$s"
+          return 0
+        done
+      done
+      return 1
+    }
+
+    # This session's own agent first - it is the one certain to be live and to
+    # belong to whoever is asking. Never the relay itself: that would loop.
+    UPSTREAM="''${SSH_AUTH_SOCK:-}"
+    [ "$UPSTREAM" = "$RELAY" ] && UPSTREAM=""
+    if [ -z "$UPSTREAM" ] || ! alive "$UPSTREAM"; then
+      UPSTREAM="$(scan || true)"
+    fi
+    # Genuinely nobody attached. Leave whatever is published alone - a mosh
+    # session, which cannot forward at all, keeps borrowing a live relay.
+    [ -n "$UPSTREAM" ] || exit 0
 
     # If something live is already published, leave it alone. First client in
     # owns the path; later ones use their own forwarded socket directly and
@@ -69,7 +111,7 @@ let
     if [ -f "$PIDFILE" ]; then kill "$(cat "$PIDFILE")" 2>/dev/null || true; fi
     ${pkgs.socat}/bin/socat \
       UNIX-LISTEN:"$RELAY",fork,mode=600,unlink-early \
-      UNIX-CONNECT:"$SSH_AUTH_SOCK" >/dev/null 2>&1 &
+      UNIX-CONNECT:"$UPSTREAM" >/dev/null 2>&1 &
     echo $! > "$PIDFILE"
   '';
 in
