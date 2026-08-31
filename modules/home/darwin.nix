@@ -6,7 +6,7 @@
 # /etc/zshrc, which runs for every shell. The OrbStack init did go -- its
 # binaries are all still on PATH via /usr/local/bin and /opt/homebrew/bin, so
 # only the zsh completions for docker, kubectl, orb and orbctl went with it.
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   # Where the Vaultwarden desktop app serves the vault SSH keys.
   bitwardenAgent =
@@ -62,7 +62,21 @@ in
     nano = "/opt/homebrew/bin/nano";
   };
 
-  programs.zsh.initContent = ''
+  programs.zsh.initContent = lib.mkMerge [
+    # OrbStack, at order 550 so it lands BEFORE home-manager's compinit.
+    # Its init.zsh does two things: appends ~/.orbstack/bin to PATH, which is
+    # redundant (every binary is already symlinked into /usr/local/bin or
+    # /opt/homebrew/bin), and appends its completions dir to fpath, which is
+    # not. fpath after compinit is fpath ignored, so the ordering is the whole
+    # point -- sourcing this in the default block silently gets you nothing.
+    #
+    # Lost when ~/.zprofile became generated on 2026-08-29 and nobody noticed,
+    # because the commands all kept working and only the completions went.
+    (lib.mkOrder 550 ''
+      [ -f "$HOME/.orbstack/shell/init.zsh" ] && . "$HOME/.orbstack/shell/init.zsh"
+    '')
+
+    ''
     # uv's installer drops a PATH shim here
     [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 
@@ -124,5 +138,6 @@ in
           ;;
       esac
     }
-  '';
+    ''
+  ];
 }
