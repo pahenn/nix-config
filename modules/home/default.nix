@@ -5,6 +5,7 @@
     ./shell.nix
     ./starship.nix
     ./git.nix
+    ./ssh.nix
   ];
 
   home.stateVersion = "25.05";

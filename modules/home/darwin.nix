@@ -36,6 +36,35 @@ in
 {
   programs.git.settings.gpg.ssh.program = "${gitSigner}/bin/ssh-keygen-vault-agent";
 
+  # The Mac-only half of ~/.ssh/config. The shared lab hosts are in ssh.nix.
+  home.file.".ssh/config".text = lib.mkMerge [
+    # OrbStack writes this line into ~/.ssh/config itself when it installs or
+    # updates. Once home-manager owns that file it is a read-only symlink into
+    # the store and OrbStack can no longer add it - the same trap shell.nix
+    # records for installers that append to ~/.zshrc. Declared here so it
+    # survives, and placed above the Host blocks the way OrbStack asks, which
+    # the hand-maintained file did not do.
+    (lib.mkOrder 200 ''
+      Include ~/.orbstack/ssh/config
+    '')
+
+    # Last, because ssh_config is first-match-wins and `Host *` matches
+    # everything: any specific block above must get to set its own options
+    # first. This is the only place the vault agent is named for ssh itself -
+    # git signing cannot use it, which is what gitSigner above exists for.
+    (lib.mkAfter ''
+
+      # Bitwarden desktop as the SSH agent, backed by self-hosted Vaultwarden.
+      # Private keys live in the vault and never touch disk. On-disk
+      # IdentityFile keys still work as a fallback, so this is additive.
+      # NOTE: locking the vault disables these keys - that is the security
+      # property, but it also means an unattended script fails until the vault
+      # is unlocked.
+      Host *
+          IdentityAgent ${bitwardenAgent}
+    '')
+  ];
+
   home.sessionPath = [
     "${config.home.homeDirectory}/Library/pnpm"
     "/opt/homebrew/opt/openjdk/bin"
