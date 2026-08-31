@@ -80,6 +80,20 @@
     ];
 
     casks = [
+      # The flake already depended on this app without installing it: ssh.nix
+      # points IdentityAgent at its socket, and darwin.nix's git signing wrapper
+      # execs against the same one. A machine built from this repo came up with
+      # a perfect ssh config and no agent to satisfy it.
+      #
+      # It was installed by hand on both Macs first, so it had to be adopted
+      # before being declared: `brew bundle` refuses to adopt an app whose
+      # version differs, and a failed cask aborts activation before
+      # home-manager - see 2026-08-29-brew-abort-half-switch. `brew install
+      # --cask --adopt` does NOT have that restriction and took 2026.7.0 over
+      # against a 2026.8.0 cask. It needs a real terminal: brew shells out to
+      # /usr/bin/sudo for the chmod, which the NOPASSWD rule for brew itself
+      # does not cover.
+      "bitwarden"
       "brave-browser"
       "ghostty"
       "obsidian"
