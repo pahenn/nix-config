@@ -39,8 +39,11 @@
       "qemu"
       "tree"
       "go"
-      "nano"
-      "nanorc"
+      # nano and nanorc moved to modules/home/nano.nix, so every machine gets the
+      # same editor and the same colouring. Left here they would keep winning:
+      # /opt/homebrew/bin is first on PATH, so the Mac would run a different nano
+      # from every other host while appearing to be configured identically.
+      # cleanup = "uninstall" removes them on the next switch, which is intended.
       "gh"
       "nvtop"
       "mactop"

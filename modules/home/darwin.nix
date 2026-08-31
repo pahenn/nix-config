@@ -141,7 +141,6 @@ in
 
   programs.zsh.shellAliases = {
     flushdns = "sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder";
-    nano = "/opt/homebrew/bin/nano";
   };
 
   programs.zsh.initContent = lib.mkMerge [

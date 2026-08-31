@@ -7,6 +7,7 @@
     ./git.nix
     ./ssh.nix
     ./claude-code.nix
+    ./nano.nix
   ];
 
   home.stateVersion = "25.05";
