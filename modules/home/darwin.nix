@@ -8,6 +8,10 @@
 # only the zsh completions for docker, kubectl, orb and orbctl went with it.
 { config, lib, pkgs, ... }:
 let
+  # Pinned deliberately: nothing tracks upstream nvm releases, and an installer
+  # fetched from a moving ref is a different program on every new machine.
+  nvmVersion = "v0.40.7";
+
   # Where the Vaultwarden desktop app serves the vault SSH keys.
   bitwardenAgent =
     "${config.home.homeDirectory}/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock";
@@ -70,6 +74,41 @@ in
   # that is known - it is otherwise exactly the kind of file that belongs here.
   home.packages = [ pkgs.bitwarden-cli pkgs.rbw pkgs.pinentry_mac ];
 
+  # nvm, installed by its own installer on activation — the same shape as
+  # claude-code.nix, and for the same reason: nixpkgs does not package a shell
+  # function usefully, and the vendor installer is the supported path.
+  #
+  # This exists because ~/.nvm was never a standalone install, whatever the
+  # comment above used to claim. It was a directory of symlinks into
+  # /opt/homebrew/opt/nvm — so when the Homebrew formula was dropped, nvm.sh and
+  # nvm-exec went dangling and node vanished from PATH on 2026-09-01. It failed
+  # silently because the guard is `[ -s "$NVM_DIR/nvm.sh" ]` and `-s` follows
+  # symlinks: a dangling one is simply false. No error, no nvm, and ~/.nvm/versions
+  # still holding v22.14.0 the whole time.
+  #
+  # `-r` rather than `-s` as the guard here, so a dangling symlink counts as
+  # absent and this repairs it rather than skipping.
+  #
+  # PROFILE=/dev/null is load-bearing: the installer appends its own block to
+  # ~/.zshrc, which is a read-only store symlink. The sourcing is declared above
+  # anyway, so the installer must be told not to try.
+  #
+  # Verified against a directory shaped like the broken one — dangling nvm.sh
+  # plus a populated versions/ — and it replaces the symlink while leaving the
+  # installed node versions alone.
+  home.activation.nvm = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -r "$HOME/.nvm/nvm.sh" ]; then
+      echo "nvm: present at ~/.nvm, leaving alone"
+    else
+      echo "nvm: installing ${nvmVersion}"
+      $DRY_RUN_CMD ${pkgs.bash}/bin/bash -c \
+        'export PATH="${lib.makeBinPath [ pkgs.curl pkgs.git pkgs.bash pkgs.coreutils pkgs.gnused ]}:$PATH"; \
+         export PROFILE=/dev/null; \
+         curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/${nvmVersion}/install.sh | bash' \
+        || echo "nvm: install FAILED — continuing activation" >&2
+    fi
+  '';
+
   # The Mac-only half of ~/.ssh/config. The shared lab hosts are in ssh.nix.
   home.file.".ssh/config".text = lib.mkMerge [
     # OrbStack writes this line into ~/.ssh/config itself when it installs or
@@ -129,9 +168,8 @@ in
 
   home.sessionVariables = {
     PNPM_HOME = "${config.home.homeDirectory}/Library/pnpm";
-    # The standalone nvm in ~/.nvm holds the installed node versions. The
-    # Homebrew nvm formula was a second copy of the script pointed at this same
-    # directory, and has been dropped.
+    # ~/.nvm holds the installed node versions, and since 2026-09-01 the nvm
+    # program itself — see the activation below for why that needed saying.
     NVM_DIR = "${config.home.homeDirectory}/.nvm";
   };
 
