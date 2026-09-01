@@ -96,13 +96,22 @@ in
   # Verified against a directory shaped like the broken one — dangling nvm.sh
   # plus a populated versions/ — and it replaces the symlink while leaving the
   # installed node versions alone.
+  #
+  # The PATH list is not decoration. The first run printed
+  # `nvm.sh: line 741: awk: command not found` because gawk was missing from it:
+  # activation runs with a minimal PATH, so anything the installer shells out to
+  # has to be named here. It survived only because the install had already
+  # finished and the failure was in the installer sourcing nvm.sh at the end.
   home.activation.nvm = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ -r "$HOME/.nvm/nvm.sh" ]; then
       echo "nvm: present at ~/.nvm, leaving alone"
     else
       echo "nvm: installing ${nvmVersion}"
       $DRY_RUN_CMD ${pkgs.bash}/bin/bash -c \
-        'export PATH="${lib.makeBinPath [ pkgs.curl pkgs.git pkgs.bash pkgs.coreutils pkgs.gnused ]}:$PATH"; \
+        'export PATH="${lib.makeBinPath [
+             pkgs.curl pkgs.git pkgs.bash pkgs.coreutils
+             pkgs.gnused pkgs.gnugrep pkgs.gawk
+           ]}:$PATH"; \
          export PROFILE=/dev/null; \
          curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/${nvmVersion}/install.sh | bash' \
         || echo "nvm: install FAILED — continuing activation" >&2
