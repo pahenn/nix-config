@@ -248,6 +248,17 @@ in
       escapeTime = 10;
       historyLimit = 50000;
       terminal = "screen-256color";
+      # Let programs inside tmux set the *local* clipboard over OSC 52, not only
+      # tmux's own selections (the default, `external`). Mouse mode means a drag
+      # is tmux's, never the terminal's, and Claude Code hard-wraps its login
+      # URL, so copying it by hand arrived in pieces or not at all. With `on`,
+      # its built-in copy sends the whole URL in one piece, and it survives
+      # `docker exec` because it is just bytes on the pty. Write-only from the
+      # box's side; confirmed reaching the Mac through Kero (Ghostty engine)
+      # on 2026-10-07.
+      extraConfig = ''
+        set -g set-clipboard on
+      '';
     };
 
     # Claude Code, from the vendor installer rather than nixpkgs.
