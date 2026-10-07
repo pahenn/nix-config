@@ -40,6 +40,12 @@
         return 1
       fi
 
+      # Warn, never block: a logged-out employer node costs the VPC route only,
+      # and the workspace is still worth entering. Silent when all is well.
+      # The script lives on the box, not here: it prints the employer's
+      # control-server URL, which must not appear in a public flake.
+      [ -x /usr/local/bin/mfc-vpn-check ] && /usr/local/bin/mfc-vpn-check
+
       # Fall back rather than fail: a typo or an uncloned repo should still put
       # you in the container, where `ls /work/projects/mfc` answers the question.
       if ! docker exec mfc-work test -d "$dir" 2>/dev/null; then
@@ -49,5 +55,15 @@
 
       docker exec -it -w "$dir" mfc-work bash
     }
+  '';
+
+  # The employer Headscale expires this node every 7 days, and on 2026-09-05 it
+  # did so silently: the workspace went a month without network before anyone
+  # noticed. The status bar is on screen the moment `ssh mfcdev` attaches, so
+  # the warning lives there. Empty while logged in with more than 48h left; a
+  # red LOGIN when the node needs approving, and hours left when it is close.
+  programs.tmux.extraConfig = ''
+    set -g status-right-length 60
+    set -g status-right "#([ -x /usr/local/bin/mfc-vpn-check ] && /usr/local/bin/mfc-vpn-check --tmux)\"#{=21:pane_title}\" %H:%M %d-%b-%y"
   '';
 }
