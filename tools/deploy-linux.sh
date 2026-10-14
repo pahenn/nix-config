@@ -7,10 +7,15 @@
 # Idempotent: installs Nix only if absent, and is the same command for the first
 # deploy and every update after.
 #
-# Why it drives everything over ssh instead of running on the box: devbox and
-# mfcdev deliberately hold no private keys, so they cannot clone from GitHub or
-# Forgejo. The repo is public, so they fetch the flake by URL and need no
-# credentials at all. Nothing is cloned onto the box.
+# Why it drives everything over ssh and fetches the flake by URL: the repo is
+# public, so a deploy needs no credentials at all and nothing is cloned onto the
+# box. That means a deploy cannot fail because the vault is locked or the agent
+# is not relayed, so a box can always be rebuilt.
+#
+# The original reason (2026-08-29) was that the boxes held no keys and could not
+# clone anything. That is no longer quite true - devbox clones over SSH through
+# the relayed vault agent, and stores an issue-scoped Forgejo API token - but
+# neither is used here, deliberately.
 set -euo pipefail
 
 HOST="${1:-}"
