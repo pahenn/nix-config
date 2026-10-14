@@ -5,9 +5,12 @@
 # the employer tailnet — that isolation is the whole design, and pulling it into
 # home-manager would mean putting the employer tailnet on the host, which is
 # exactly what was rejected. The container stays a Dockerfile.
-{ ... }:
+{ pkgs, ... }:
 {
   imports = [ ../modules/home/linux-dev.nix ];
+
+  # Node 22, matching MFC's vnext `.nvmrc`. Declared per host since 2026-10-14.
+  home.packages = [ pkgs.nodejs_22 ];
 
   # The `work` session is a plain HOST shell, and `dev` steps into the container.
   #

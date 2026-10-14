@@ -51,6 +51,9 @@
     "ssh://git-codecommit.us-east-1.amazonaws.com/";
 
   home.packages = [
+    # Node 22, matching MFC's vnext `.nvmrc`. Declared per host since 2026-10-14.
+    pkgs.nodejs_22
+
     # The reason this container exists: the targets are RDS instances, and psql
     # needs the exit node's route. Replaces Debian's postgresql-client so the
     # version is pinned by the flake like everything else.

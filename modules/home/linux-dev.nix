@@ -228,7 +228,8 @@ in
       tree
       htop
       mosh
-      nodejs_22
+      # Node is declared per host, not here: projects pin their own major, and
+      # those differ by box - MFC's vnext pins 22, maginox-vnext pins 24.
       python3
       gnumake
 
