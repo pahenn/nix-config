@@ -44,7 +44,7 @@
       # /opt/homebrew/bin is first on PATH, so the Mac would run a different nano
       # from every other host while appearing to be configured identically.
       # cleanup = "uninstall" removes them on the next switch, which is intended.
-      "gh"
+      # gh went the same way on 2026-11-09 - modules/home/default.nix.
       "nvtop"
       "mactop"
       "openjdk"

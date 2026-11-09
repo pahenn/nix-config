@@ -16,6 +16,11 @@
     neovim
     cloudflared
     nanorc
+    # Moved here 2026-11-09 from homebrew.brews (Mac) and linux-dev.nix (Linux),
+    # so every machine runs the same gh from the same pin. On the Mac it came
+    # from /opt/homebrew/bin, which only reaches PATH through `brew shellenv` in
+    # the unmanaged ~/.zprofile - so a non-login shell never saw it.
+    gh
   ];
 
   # Let home-manager manage itself

@@ -237,10 +237,10 @@ in
       # bootstrap and were declared in hosts/mfc-work.nix, so they landed in the
       # container and nowhere else - `gh` missing on devbox is what surfaced it.
       # Nothing about them is employer-specific, and these boxes are supposed to
-      # be the same box twice, so the narrow scoping was the mistake.
+      # be the same box twice, so the narrow scoping was the mistake. gh has
+      # since moved up again, to modules/home/default.nix, so the Macs get it too.
       pnpm
       uv
-      gh
     ]);
 
     programs.tmux = {
