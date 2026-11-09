@@ -37,34 +37,24 @@
 
     brews = [
       "qemu"
-      "tree"
-      "go"
       # nano and nanorc moved to modules/home/nano.nix, so every machine gets the
       # same editor and the same colouring. Left here they would keep winning:
       # /opt/homebrew/bin is first on PATH, so the Mac would run a different nano
       # from every other host while appearing to be configured identically.
       # cleanup = "uninstall" removes them on the next switch, which is intended.
-      # gh went the same way on 2026-11-09 - modules/home/default.nix.
+      #
+      # On 2026-11-09 the plain CLIs went the same way: gh, tree, htop, uv, pnpm,
+      # go, duf, duckdb, git-filter-repo, nmap, rainfrog, minio-mc and yq (as
+      # yq-go) to modules/home/default.nix; awscli, aws-elasticbeanstalk, mactop
+      # and rust (as rustup) to modules/home/darwin.nix. What remains below is
+      # here for a reason - a daemon, a library other things link against, a
+      # Metal or tap build, or no nixpkgs equivalent.
       "nvtop"
-      "mactop"
       "openjdk"
       "postgresql@18"
-      "pnpm"
-      "yq"
       "sqlcmd"
-      "uv"
       "unixODBC"
       "freetds"
-      "duckdb"
-      "minio-mc"
-      "rainfrog"
-      "duf"
-      "htop"
-      "git-filter-repo"
-      "awscli"
-      "aws-elasticbeanstalk"
-      "nmap"
-      "rust"
       "tailscale"
       # Declared alongside postgresql@18: @16 is what ~/.zshrc has always put on
       # PATH, so it stays until the client tooling is moved over deliberately.

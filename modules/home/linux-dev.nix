@@ -225,22 +225,17 @@ in
       ripgrep
       jq
       fd
-      tree
-      htop
+      # tree and htop moved to modules/home/default.nix on 2026-11-09.
       mosh
       # Node is declared per host, not here: projects pin their own major, and
       # those differ by box - MFC's vnext pins 22, maginox-vnext pins 24.
       python3
       gnumake
 
-      # Added to the shared list 2026-08-30. These arrived for tech-kit's
-      # bootstrap and were declared in hosts/mfc-work.nix, so they landed in the
-      # container and nowhere else - `gh` missing on devbox is what surfaced it.
-      # Nothing about them is employer-specific, and these boxes are supposed to
-      # be the same box twice, so the narrow scoping was the mistake. gh has
-      # since moved up again, to modules/home/default.nix, so the Macs get it too.
-      pnpm
-      uv
+      # pnpm, uv and gh were added here 2026-08-30 for tech-kit's bootstrap,
+      # after being declared in hosts/mfc-work.nix and landing in the container
+      # and nowhere else. On 2026-11-09 all three moved up again, to
+      # modules/home/default.nix, so the Macs get them from nix too.
     ]);
 
     programs.tmux = {

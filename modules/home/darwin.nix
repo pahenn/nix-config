@@ -72,7 +72,39 @@ in
   # that file itself and it is not yet established whether login stores a device
   # id there, which a read-only store symlink would break. Worth revisiting once
   # that is known - it is otherwise exactly the kind of file that belongs here.
-  home.packages = [ pkgs.bitwarden-cli pkgs.rbw pkgs.pinentry_mac ];
+  home.packages = [
+    pkgs.bitwarden-cli pkgs.rbw pkgs.pinentry_mac
+
+    # Moved from homebrew.brews 2026-11-09. Mac-only on purpose: devbox is the box
+    # with no path to employer infrastructure, and AWS tooling there invites the
+    # drift that separation exists to prevent - the reason awscli2 is container-
+    # only on mfcdev too.
+    pkgs.awscli2
+    pkgs.awsebcli
+    pkgs.mactop
+
+    # Replaces Homebrew's `rust`, which tied the compiler to whatever brew last
+    # shipped. rustup owns the toolchains instead; the activation below installs
+    # the default one. Mac-only because that is where rust was - in the shared
+    # module it would pull a toolchain onto every dev box and the work container.
+    pkgs.rustup
+  ];
+
+  # Without a default toolchain every rustup proxy (cargo, rustc) errors, so a
+  # fresh switch would leave `cargo` worse than missing. Same rules as
+  # claude-code.nix: check-then-skip, and never fail activation - it runs under
+  # `set -eu`, and a failed step aborts everything after it.
+  home.activation.rustupDefault = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if ${pkgs.rustup}/bin/rustup default >/dev/null 2>&1; then
+      echo "rustup: default toolchain present, leaving alone"
+    else
+      echo "rustup: installing stable (minimal + clippy, rustfmt)"
+      ${pkgs.rustup}/bin/rustup toolchain install stable --profile minimal \
+          -c clippy -c rustfmt \
+        && ${pkgs.rustup}/bin/rustup default stable \
+        || echo "rustup: install failed - run 'rustup default stable' by hand"
+    fi
+  '';
 
   # nvm, installed by its own installer on activation — the same shape as
   # claude-code.nix, and for the same reason: nixpkgs does not package a shell
@@ -173,6 +205,8 @@ in
     "${config.home.homeDirectory}/.lmstudio/bin"
     "${config.home.homeDirectory}/.antigravity/antigravity/bin"
     "${config.home.homeDirectory}/.opencode/bin"
+    # where `cargo install` puts binaries
+    "${config.home.homeDirectory}/.cargo/bin"
   ];
 
   home.sessionVariables = {
