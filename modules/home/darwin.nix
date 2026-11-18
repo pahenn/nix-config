@@ -2,8 +2,10 @@
 # ~/.zshrc.
 #
 # ~/.zprofile IS generated here, contrary to what this comment said until
-# 2026-08-30. Nothing was lost by that: `brew shellenv` moved to nix-darwin's
-# /etc/zshrc, which runs for every shell. The OrbStack init did go -- its
+# 2026-08-30. `brew shellenv` survived that only because nix-darwin's /etc/zshrc
+# also runs it -- and on 2026-11-16 a macOS update replaced /etc/zshrc with the
+# stock file and Homebrew vanished from PATH on home-mini. It is now also in
+# ~/.zprofile below, which macOS does not touch. The OrbStack init did go -- its
 # binaries are all still on PATH via /usr/local/bin and /opt/homebrew/bin, so
 # only the zsh completions for docker, kubectl, orb and orbctl went with it.
 { config, lib, pkgs, ... }:
@@ -223,6 +225,37 @@ in
   programs.zsh.shellAliases = {
     flushdns = "sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder";
   };
+
+  # ~/.zprofile. Two things, both because macOS updates overwrite /etc.
+  #
+  # nix-darwin generates /etc/zshrc, /etc/zprofile, /etc/zshenv and /etc/bashrc
+  # as symlinks into /etc/static. A macOS update can replace any of them with
+  # Apple's stock file, and nothing fails: the 27.2.1 update on home-mini
+  # (2026-11-16) replaced both /etc/zprofile and /etc/zshrc. The stock zprofile
+  # runs path_helper, which moves /usr/bin ahead of the nix profile, so `nano`
+  # and `git` quietly became Apple's. The stock zshrc has no
+  # `brew shellenv`, so /opt/homebrew/bin left PATH and `code` looked
+  # uninstalled. The file mtimes mislead: zprofile carries the OS *build* date
+  # (2026-11-05), and zshrc the moment the Nix daemon re-appended its block.
+  #
+  # Recovery is `darwin-rebuild switch`. Stock files whose hash nix-darwin
+  # knows are moved to .before-nix-darwin and relinked; anything else aborts
+  # activation with "Unexpected files in /etc" and has to be moved by hand.
+  #
+  # 1. `brew shellenv` here as well as in /etc/zshrc, so Homebrew's PATH has a
+  #    source macOS cannot remove. Running it twice is harmless: it goes through
+  #    path_helper, which de-duplicates. Login shells only, which is every
+  #    terminal on macOS; a subshell inherits PATH from its parent.
+  # 2. Say so when it has happened, since nothing else will. This only warns:
+  #    it cannot undo the PATH reordering, because path_helper has already run.
+  programs.zsh.profileExtra = ''
+    [ -x /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+
+    for _f in /etc/zshrc /etc/zprofile /etc/zshenv /etc/bashrc; do
+      [ -L "$_f" ] || print -u2 "nix-darwin: $_f is no longer managed (replaced by a macOS update?) - run darwin-rebuild switch"
+    done
+    unset _f
+  '';
 
   programs.zsh.initContent = lib.mkMerge [
     # OrbStack, at order 550 so it lands BEFORE home-manager's compinit.
