@@ -38,9 +38,19 @@ let
     fi
     exec ${pkgs.openssh}/bin/ssh-keygen "$@"
   '';
+
+  # The same one-command override for ssh-add, so the vault keys can be listed
+  # (`ssh-add-vault-agent -L`) without exporting SSH_AUTH_SOCK into the shell.
+  vaultSshAdd = pkgs.writeShellScriptBin "ssh-add-vault-agent" ''
+    if [ -S "${bitwardenAgent}" ]; then
+      export SSH_AUTH_SOCK="${bitwardenAgent}"
+    fi
+    exec ${pkgs.openssh}/bin/ssh-add "$@"
+  '';
 in
 {
   programs.git.settings.gpg.ssh.program = "${gitSigner}/bin/ssh-keygen-vault-agent";
+
 
   # Vaultwarden from the shell. Mac only, deliberately: a `bw` session is a
   # credential, and the whole point of the dev boxes is that they hold none -
@@ -76,6 +86,12 @@ in
   # that is known - it is otherwise exactly the kind of file that belongs here.
   home.packages = [
     pkgs.bitwarden-cli pkgs.rbw pkgs.pinentry_mac
+
+    # The vault-agent wrappers on PATH. Anything that says "run ssh-keygen -Y sign ..." --
+    # Forgejo's or GitHub's key verification -- works with the vault key as
+    # `ssh-keygen-vault-agent -Y sign ...`, and `ssh-add-vault-agent -L` lists the vault keys,
+    # while the shell's SSH_AUTH_SOCK stays launchd's (the tradeoff at the top, kept).
+    gitSigner vaultSshAdd
 
     # Moved from homebrew.brews 2026-11-09. Mac-only on purpose: devbox is the box
     # with no path to employer infrastructure, and AWS tooling there invites the
