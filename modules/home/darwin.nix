@@ -242,6 +242,40 @@ in
     flushdns = "sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder";
   };
 
+  # ~/.zshenv — the same PATH order in EVERY zsh, not only terminals.
+  #
+  # A non-login, non-interactive zsh — an agent's command, a script, cron, an
+  # editor task — reads /etc/zshenv and ~/.zshenv and nothing else. `brew
+  # shellenv` lives in ~/.zprofile and /etc/zshrc, so those shells had no
+  # /opt/homebrew/bin, the nix profile fell behind /usr/bin, and `python3` was
+  # Apple's Command Line Tools 3.9.6 instead of Homebrew's 3.14. Found
+  # 2026-11-24 when an agent's scripts kept failing on f-string syntax that
+  # Python 3.12 allows.
+  #
+  # Homebrew, then the nix profile, are moved to just before the first system
+  # directory (/usr/local/bin, else /usr/bin). The user's own directories —
+  # ~/.local/bin, the sessionPath entries above, nvm's node — stay ahead, as in
+  # a terminal. Homebrew stays ahead of the nix profile: that order is
+  # deliberate (see the CLIs moved to home-manager on 2026-11-09). Login shells
+  # run this first and then path_helper and brew shellenv as before, so
+  # terminals end up where they always did. `typeset -U` drops duplicates.
+  programs.zsh.envExtra = lib.mkAfter ''
+    () {
+      local -a front=(
+        /opt/homebrew/bin /opt/homebrew/sbin
+        $HOME/.nix-profile/bin /etc/profiles/per-user/$USER/bin
+        /run/current-system/sw/bin /nix/var/nix/profiles/default/bin
+      )
+      [[ -x /opt/homebrew/bin/brew ]] || front=(''${front:#/opt/homebrew/*})
+      local -a rest=(''${path:|front})
+      local i=''${rest[(i)/usr/local/bin]}
+      (( i > $#rest )) && i=''${rest[(i)/usr/bin]}
+      path=(''${rest[1,i-1]} $front ''${rest[i,-1]})
+      typeset -gU path
+      [[ -x /opt/homebrew/bin/brew ]] && export HOMEBREW_PREFIX=/opt/homebrew HOMEBREW_CELLAR=/opt/homebrew/Cellar HOMEBREW_REPOSITORY=/opt/homebrew
+    }
+  '';
+
   # ~/.zprofile. Two things, both because macOS updates overwrite /etc.
   #
   # nix-darwin generates /etc/zshrc, /etc/zprofile, /etc/zshenv and /etc/bashrc
