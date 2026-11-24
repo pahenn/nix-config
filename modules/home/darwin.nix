@@ -186,16 +186,35 @@ in
     # block that cannot work is how config stops being trustworthy. Move it to
     # ssh.nix the day a dev box genuinely needs it.
     #
-    # Addressed by its tailnet IP, not a LAN one: the two Macs are not reliably
-    # on the same network, which is the whole reason this entry is useful.
+    # Addressed by tailnet IP, not a LAN one: the two Macs are not reliably on
+    # the same network, which is the whole reason this entry is useful.
     #
-    # INERT UNTIL Remote Login is enabled on that machine - macOS ships it off,
-    # and port 22 was refused as of 2026-08-31. Nothing here can turn it on;
-    # it is System Settings > General > Sharing.
+    # On EITHER tailnet (2026-11-24). home-mini is signed in to the personal
+    # tailnet (100.64.0.7) and to MyFleetIntel's (100.96.0.12), and so is this
+    # Mac — one at a time, as the Tailscale app allows — so which address
+    # answers depends on which VPN each is on at that moment. The Match tries
+    # the personal address first with a 2 s connect check, and the Host block
+    # falls back to MyFleetIntel's. ssh_config is first-value-wins, so the
+    # HostName the Match sets is the one used.
+    #
+    # The host key is checked under one name whichever address answered
+    # (HostKeyAlias), against the pinned file below and nothing else, strictly.
+    # Without the alias, the second address is an unknown host — and an old
+    # `home-mini` line in ~/.ssh/known_hosts held a key home-mini no longer
+    # has, which read as "REMOTE HOST IDENTIFICATION HAS CHANGED".
+    #
+    # Remote Login is on (it was refused when this entry was written,
+    # 2026-08-31; macOS ships it off, under System Settings > General > Sharing).
     (lib.mkOrder 400 ''
 
-      Host home-mini
+      Match originalhost home-mini exec "/usr/bin/nc -z -G 2 100.64.0.7 22"
           HostName 100.64.0.7
+
+      Host home-mini
+          HostName 100.96.0.12
+          HostKeyAlias home-mini
+          UserKnownHostsFile ~/.ssh/known_hosts_flake
+          StrictHostKeyChecking yes
           User pahenn
     '')
 
@@ -215,6 +234,16 @@ in
           IdentityAgent ${bitwardenAgent}
     '')
   ];
+
+  # home-mini's host keys, pinned under the HostKeyAlias above. Taken from the
+  # record trusted for 100.64.0.7 and checked identical, type by type, against
+  # what home-mini served at 100.96.0.12 on 2026-11-24. If home-mini is rebuilt
+  # or its keys regenerated, ssh refuses until these are replaced — by design.
+  home.file.".ssh/known_hosts_flake".text = ''
+      home-mini ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBDH6f8MW5jSgs7gpJOoxDMAeb+fNd7LLHc0MQtkKUtl27Rg7714vhcdQnFiEhp2/BCJFDRc7IyZp+OjYQaaEpJQ=
+      home-mini ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILyeDPIUf/sRE85SavuKPOHF6/9NvAt12uVkhT9K1lQW
+      home-mini ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC16KLULtxX/KFBWenjXiw+mqwUsBDyvKrOZ3pNOvSEppxPhxlV0map417+P/Z4ooraCkpmWxAttHGyik7P0zvPb6xOXNcqyT2wLTUCDFZpfGq7R18DxhxObcVLoBe4+VygbZ66gum5L9yLligJCW0+HRBss+5dwlswdz9dfaowrxjmuBLIGeE6e3fT/WXZPNQwkmb0/R8gh/FkUR9s8QT7t3lh5nBDOOZNkaoI4NfbGWum3O1cbqDNg5+0n5gSgqUontfapmjaBL7I8l4VuWOoUqOcLp8C1jI55XBhsv/dyiJ94q9vLVy+zAKGyhVX2uewtBqEL/VDooQJZzlN63lbR8QZnnV4XJACOiNWxZYJOqRbEAafLX12Ll6qkLQOvI9Yv/BQnhZ/xL3UkvN2/AVv3PJwNPj+AtXBOWXEVaxjM1ozv8xFSb5F4YSVojnUV+Nu1yM+r/eA3V6tzAoo8O/49Avct4swUtsyjFRu0Cd1yL+m2yYQ2p7gkM/kev6fcsU=
+  '';
 
   home.sessionPath = [
     "${config.home.homeDirectory}/Library/pnpm"
